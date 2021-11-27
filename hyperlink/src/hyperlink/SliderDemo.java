@@ -34,6 +34,7 @@ package hyperlink;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -60,7 +61,7 @@ public class SliderDemo extends JPanel
     static final int FPS_INIT = 15;    //initial frames per second
 	static int width = 1920;
 	static int height = 1080;
-    int frameNumber = 0;
+    int frameNumber = 1;
     int NUM_FRAMES = 4;
     ImageIcon[] images = new ImageIcon[NUM_FRAMES];
     int delay;
@@ -186,15 +187,15 @@ public class SliderDemo extends JPanel
     /** Update the label to display the image for the current frame. */
     protected void updatePicture(int frameNum) {
         //Get the image if we haven't already.
-        if (images[frameNumber] == null) {
-            images[frameNumber] = createImageIcon(video1Path+"000"+
+        if (images[frameNumber-1] == null) {
+            images[frameNumber-1] = createImageIcon(video1Path+"000"+
                                                   + frameNumber
                                                   + ".rgb");
         }
 
         //Set the image.
-        if (images[frameNumber] != null) {
-            picture.setIcon(images[frameNumber]);
+        if (images[frameNumber-1] != null) {
+            picture.setIcon(images[frameNumber-1]);
         } else { //image not found
             picture.setText("image #" + frameNumber + " not found");
         }
@@ -203,18 +204,47 @@ public class SliderDemo extends JPanel
     /** Returns an ImageIcon, or null if the path was invalid. */
     protected static ImageIcon createImageIcon(String path) {
         //java.net.URL imgURL = SliderDemo.class.getResource(path);
-        int frameLength = width*height*3;
+    	// Read in the specified image
+		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		readImageRGB(width, height,path, imgOne);
+		return new ImageIcon(imgOne);
+    }
 
-		File file = new File(path);
-		RandomAccessFile raf;
-		try {
-			raf = new RandomAccessFile(file, "r");
+	/** Read Image RGB
+	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
+	 */
+	private static void readImageRGB(int width, int height, String imgPath, BufferedImage img)
+	{
+		try
+		{
+			int frameLength = width*height*3;
+
+			File file = new File(imgPath);
+			RandomAccessFile raf = new RandomAccessFile(file, "r");
 			raf.seek(0);
+
 			long len = frameLength;
 			byte[] bytes = new byte[(int) len];
+
 			raf.read(bytes);
-			return new ImageIcon(bytes);
-		}catch (FileNotFoundException e) 
+
+			int ind = 0;
+			for(int y = 0; y < height; y++)
+			{
+				for(int x = 0; x < width; x++)
+				{
+					byte a = 0;
+					byte r = bytes[ind];
+					byte g = bytes[ind+height*width];
+					byte b = bytes[ind+height*width*2]; 
+					int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
+					img.setRGB(x,y, pix);
+					ind++;
+				}
+			}
+		}
+		catch (FileNotFoundException e) 
 		{
 			e.printStackTrace();
 		} 
@@ -222,18 +252,7 @@ public class SliderDemo extends JPanel
 		{
 			e.printStackTrace();
 		}
-		return null;
-		
-//        if (imgURL != null) {
-//            return new ImageIcon(imgURL);
-//        } else {
-//            System.err.println("Couldn't find file: " + path);
-//            return null;
-//        }
-//        readImageRGB();
-		
-    }
-
+	}
     /**
      * Create the GUI and show it.  For thread safety,
      * this method should be invoked from the
