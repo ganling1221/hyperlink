@@ -8,8 +8,8 @@ public class HyperlinkVideo {
 	JFrame frame;
 	JLabel lbIm1;
 	BufferedImage imgOne;
-	int width = 640;
-	int height = 480;
+	int width = 352;
+	int height = 288;
 
 	/** Read Image RGB
 	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
