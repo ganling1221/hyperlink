@@ -55,14 +55,14 @@ public class SliderDemo extends JPanel
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	//Set up animation parameters.
-    static final int FPS_MIN = 0;
-    static final int FPS_MAX = 30;
+	//Set up animation parameters.ç
+    static final int FPS_MIN = 1;
+    static final int FPS_MAX = 29;
     static final int FPS_INIT = 15;    //initial frames per second
-	static int width = 1920;
-	static int height = 1080;
-    int frameNumber = 1;
-    int NUM_FRAMES = 4;
+	static int width = 352;
+	static int height = 288;
+    int frameNumber = 0;
+    int NUM_FRAMES = 30;
     ImageIcon[] images = new ImageIcon[NUM_FRAMES];
     int delay;
     Timer timer;
@@ -73,17 +73,19 @@ public class SliderDemo extends JPanel
 
     public SliderDemo(String[] paths) {
     	video1Path = paths[0];
+        loadPicture();
+
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
-        delay = 1000 / FPS_INIT;
+       //delay = 1000 / FPS_INIT;
 
         //Create the label.
-        JLabel sliderLabel = new JLabel("Frames Per Second", JLabel.CENTER);
+        JLabel sliderLabel = new JLabel("Frames Number", JLabel.CENTER);
         sliderLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         //Create the slider.
         JSlider framesPerSecond = new JSlider(JSlider.HORIZONTAL,
-                                              FPS_MIN, FPS_MAX, FPS_INIT);
+                                              FPS_MIN, NUM_FRAMES, FPS_MIN);
         
 
         framesPerSecond.addChangeListener(this);
@@ -106,7 +108,7 @@ public class SliderDemo extends JPanel
         picture.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLoweredBevelBorder(),
                 BorderFactory.createEmptyBorder(10,10,10,10)));
-        updatePicture(0); //display first frame
+        updatePicture(1); //display first frame
 
         //Put everything together.
         add(sliderLabel);
@@ -128,10 +130,10 @@ public class SliderDemo extends JPanel
 
     //React to window events.
     public void windowIconified(WindowEvent e) {
-        stopAnimation();
+        //stopAnimation();
     }
     public void windowDeiconified(WindowEvent e) {
-        startAnimation();
+        //startAnimation();
     }
     public void windowOpened(WindowEvent e) {}
     public void windowClosing(WindowEvent e) {}
@@ -142,17 +144,21 @@ public class SliderDemo extends JPanel
     /** Listen to the slider. */
     public void stateChanged(ChangeEvent e) {
         JSlider source = (JSlider)e.getSource();
+//        if (!source.getValueIsAdjusting()) {
+//            int fps = (int)source.getValue();
+//            if (fps == 0) {
+//                if (!frozen) stopAnimation();
+//            } else {
+//                delay = 1000 / fps;
+//                timer.setDelay(delay);
+//                timer.setInitialDelay(delay * 10);
+//                if (frozen) startAnimation();
+//            }
+//        }
         if (!source.getValueIsAdjusting()) {
-            int fps = (int)source.getValue();
-            if (fps == 0) {
-                if (!frozen) stopAnimation();
-            } else {
-                delay = 1000 / fps;
-                timer.setDelay(delay);
-                timer.setInitialDelay(delay * 10);
-                if (frozen) startAnimation();
-            }
+        	frameNumber = (int)source.getValue()-1;
         }
+        updatePicture(frameNumber);
     }
    
     public void startAnimation() {
@@ -170,37 +176,40 @@ public class SliderDemo extends JPanel
     //Called when the Timer fires.
     public void actionPerformed(ActionEvent e) {
         //Advance the animation frame.
-        if (frameNumber == (NUM_FRAMES )) {
-            frameNumber = 1;
-        } else {
-            frameNumber++;
-        }
-
-        updatePicture(frameNumber); //display the next picture
-
-        if ( frameNumber==(NUM_FRAMES )
-          || frameNumber==(NUM_FRAMES/2) ) {
-            timer.restart();
-        }
+//        if (frameNumber == (NUM_FRAMES )) {
+//            frameNumber = 1;
+//        } else {
+//            frameNumber++;
+//        }
+//
+//        updatePicture(frameNumber); //display the next picture
+//
+//        if ( frameNumber==(NUM_FRAMES )
+//          || frameNumber==(NUM_FRAMES/2) ) {
+//            timer.restart();
+//        }
     }
 
     /** Update the label to display the image for the current frame. */
-    protected void updatePicture(int frameNum) {
-        //Get the image if we haven't already.
-        if (images[frameNumber-1] == null) {
-            images[frameNumber-1] = createImageIcon(video1Path+"000"+
-                                                  + frameNumber
-                                                  + ".rgb");
-        }
-
+    protected void updatePicture(int frameNumber) {
         //Set the image.
-        if (images[frameNumber-1] != null) {
-            picture.setIcon(images[frameNumber-1]);
+        if (images[frameNumber] != null) {
+            picture.setIcon(images[frameNumber]);
         } else { //image not found
             picture.setText("image #" + frameNumber + " not found");
         }
     }
 
+    private void loadPicture(){
+    	//Get the image if we haven't already.
+    	for(int i =0; i<NUM_FRAMES;i++) {
+    		String formatted = String.format("%04d", i+1);
+    		System.out.println(formatted);
+    		images[i] = createImageIcon(video1Path+ formatted + ".rgb");
+    	}
+        
+        
+    }
     /** Returns an ImageIcon, or null if the path was invalid. */
     protected static ImageIcon createImageIcon(String path) {
         //java.net.URL imgURL = SliderDemo.class.getResource(path);
@@ -263,7 +272,6 @@ public class SliderDemo extends JPanel
         //Create and set up the window.
         JFrame frame = new JFrame("SliderDemo");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
         //take in the first file path 
         SliderDemo animator = new SliderDemo(args);
                 
@@ -273,7 +281,7 @@ public class SliderDemo extends JPanel
         //Display the window.
         frame.pack();
         frame.setVisible(true);
-        animator.startAnimation(); 
+        //animator.startAnimation(); 
     }
 
     public static void main(String[] args) {
@@ -286,6 +294,7 @@ public class SliderDemo extends JPanel
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 createAndShowGUI(args);
+                
             }
         });
     }
