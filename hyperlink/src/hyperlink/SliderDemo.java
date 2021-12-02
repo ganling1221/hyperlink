@@ -272,7 +272,7 @@ public class SliderDemo extends JPanel
           g.drawRect(x, y, width, height);
           g.dispose();
 
-          startPt = null;
+          startPt = mEvt.getPoint();
           repaint();
        }
 
