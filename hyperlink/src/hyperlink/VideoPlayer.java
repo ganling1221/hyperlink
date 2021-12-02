@@ -3,10 +3,14 @@ package hyperlink;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.*;
 import javax.swing.event.*;
@@ -18,7 +22,8 @@ import javax.swing.event.*;
 public class VideoPlayer extends JPanel
                         implements ActionListener,
                                    WindowListener,
-                                   ChangeListener {
+                                   ChangeListener,
+                                   MouseListener{
     /**
 	 * 
 	 */
@@ -31,7 +36,7 @@ public class VideoPlayer extends JPanel
     static final int FPS_MAX = 30;
     static final int FPS_INIT = 15;    //initial frames per second
     String video1Path;
-    int frameNumber = 1;
+    int frameNumber;
     int NUM_FRAMES = 90000;
 	static int width = 352;
 	static int height = 288;
@@ -43,10 +48,10 @@ public class VideoPlayer extends JPanel
     //This label uses ImageIcon to show the doggy pictures.
     JLabel picture;
 
-    public VideoPlayer(String path) {
+    public VideoPlayer(String path, int num) {
     	video1Path = path;
         setLayout(new BorderLayout());
-
+        frameNumber = num;
         delay = 1000 / FPS_INIT;
 
 
@@ -83,6 +88,7 @@ public class VideoPlayer extends JPanel
         add(buttonsPanel,BorderLayout.NORTH);
 
         add(picture,BorderLayout.CENTER);
+        picture.addMouseListener(this);
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
         //Set up a timer that calls this object's action handler.
@@ -109,8 +115,67 @@ public class VideoPlayer extends JPanel
     public void windowClosed(WindowEvent e) {}
     public void windowActivated(WindowEvent e) {}
     public void windowDeactivated(WindowEvent e) {}
+    
+    public void mousePressed(MouseEvent e) {
+       
+    }
+    
+    public void mouseReleased(MouseEvent e) {
+        }
+    
+    public void mouseEntered(MouseEvent e) {
+       
+    }
+    
+    public void mouseExited(MouseEvent e) {
+       
+    }
+    
+    public void mouseClicked(MouseEvent e) {
+    	String path = null;
+    	int num = 1;
+      int x=e.getX();
+      int y=e.getY();
+      if(clickedOnTracedObject(x,y)) {
+    	  //determine which object 
+    	  //based on the object, read the information in from metafile 
+	    Pattern pattern = Pattern.compile("path:", Pattern.CASE_INSENSITIVE);
+	    Pattern pattern2 = Pattern.compile("subFrame:", Pattern.CASE_INSENSITIVE);
 
+    	  try(BufferedReader br = new BufferedReader(new FileReader("metadata.txt"))) {
+    		    StringBuilder sb = new StringBuilder();
+    		    String line = br.readLine();
+    		    while (line != null) {
+    		    	//regex match the prefex path:
+    		        Matcher matcher = pattern.matcher(line);
+    		        Matcher matcher2 = pattern2.matcher(line);
 
+    		        boolean matchFound = matcher.find();
+    		        boolean matchFound2 = matcher2.find();
+    		    	if(matchFound) {
+    		    		sb.append(line.split(":")[1]);
+    		    	}
+    		    	if(matchFound2) {
+    		    		num = Integer.valueOf(line.split(":")[1]);
+    		    		break;
+    		    	}
+    		        line = br.readLine();
+    		    }
+    		     path = sb.toString();
+    		} catch (FileNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+      }
+      createAndShowGUI(path,num);
+    }
+
+    public boolean clickedOnTracedObject(int x, int y) {
+    	return true;
+    }
     public void startAnimation() {
         //Start (or restart) animating!
         timer.start();
@@ -144,7 +209,7 @@ public class VideoPlayer extends JPanel
     protected void updatePicture(int frameNum) {
         //Get the image if we haven't already.
      
-        String formatted = String.format("%04d", frameNumber+1);
+        String formatted = String.format("%04d", frameNumber);
         ImageIcon image =createImageIcon(video1Path+ formatted + ".rgb");
         //Set the image.
         if (image!= null) {
@@ -210,12 +275,13 @@ public class VideoPlayer extends JPanel
      * Create the GUI and show it.  For thread safety,
      * this method should be invoked from the
      * event-dispatching thread.
+     * @param num 
      */
-    private static void createAndShowGUI(String[] args) {
+    private static void createAndShowGUI(String arg, int num) {
         //Create and set up the window.
         JFrame frame = new JFrame("SliderDemo");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        VideoPlayer animator = new VideoPlayer(args[0]);
+        VideoPlayer animator = new VideoPlayer(arg,num);
                 
         //Add content to the window.
         frame.add(animator, BorderLayout.CENTER);
@@ -226,7 +292,7 @@ public class VideoPlayer extends JPanel
     }
 
     public static void main(String[] args) {
-		createAndShowGUI(args);
+		createAndShowGUI(args[0],1);
     }
 
 	@Override

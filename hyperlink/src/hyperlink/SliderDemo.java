@@ -18,7 +18,7 @@ import javax.swing.event.*;
 public class SliderDemo extends JPanel
                         implements ActionListener,
                                    WindowListener,
-                                   ChangeListener {
+                                   ChangeListener, MouseListener {
     /**
 	 * 
 	 */
@@ -38,7 +38,9 @@ public class SliderDemo extends JPanel
     String video1Path;
     //This label uses ImageIcon to show the doggy pictures.
     JLabel picture;
-
+    private Point startPt = null;
+    private Point endPt = null;
+    private Point currentPt = null;
     public SliderDemo(String paths) {
     	video1Path = paths;
 
@@ -70,6 +72,7 @@ public class SliderDemo extends JPanel
 
         //Create the label that displays the animation.
         picture = new JLabel();
+        picture.addMouseListener(this);
         picture.setHorizontalAlignment(JLabel.CENTER);
         picture.setAlignmentX(Component.CENTER_ALIGNMENT);
         picture.setBorder(BorderFactory.createCompoundBorder(
@@ -170,17 +173,19 @@ public class SliderDemo extends JPanel
 		}
         
     }
-
-    private void loadPicture(){
-    	//Get the image if we haven't already.
-    	for(int i =0; i<NUM_FRAMES;i++) {
-    		String formatted = String.format("%04d", i+1);
-    		images[i] = createImageIcon(video1Path+ formatted + ".rgb");
-    	}
-        
+    /** Update the label to display the image for the current frame. */
+    protected void updatePictureBoundingBox(int frameNumber,int x, int y, int w, int h) {
+        //Set the image.
+    	String formatted = String.format("%04d", frameNumber+1);
+    	System.out.println(video1Path+ formatted + ".rgb");
+		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		readImageRGBBox(width, height,video1Path+ formatted + ".rgb", imgOne, x, y, w, h);
+		ImageIcon image = new ImageIcon(imgOne);
+        picture.setIcon(image);       
     }
+    
     /** Returns an ImageIcon, or null if the path was invalid. */
-    protected static ImageIcon createImageIcon(String path) {
+    protected  ImageIcon createImageIcon(String path) {
         //java.net.URL imgURL = SliderDemo.class.getResource(path);
     	// Read in the specified image
 		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -211,6 +216,93 @@ public class SliderDemo extends JPanel
 			{
 				for(int x = 0; x < width; x++)
 				{
+					byte a = 0;
+					byte r = bytes[ind];
+					byte g = bytes[ind+height*width];
+					byte b = bytes[ind+height*width*2]; 
+					int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
+					img.setRGB(x,y, pix);
+					ind++;
+				}
+			}
+		}
+		catch (FileNotFoundException e) 
+		{
+			e.printStackTrace();
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	
+   public void mouseDragged(MouseEvent mEvt) {
+   }
+
+   @Override
+   public void mouseReleased(MouseEvent mEvt) {
+      endPt = mEvt.getPoint();
+      
+      int x = Math.min(startPt.x, endPt.x);
+      int y  = Math.min(startPt.y, endPt.y);
+      int w = Math.abs(startPt.x - endPt.x);
+      int h = Math.abs(startPt.y - endPt.y);
+      updatePictureBoundingBox(frameNumber,x,y,w,h);
+      startPt = mEvt.getPoint();
+   }
+
+   @Override
+   public void mousePressed(MouseEvent mEvt) {
+      startPt = mEvt.getPoint();
+   }
+	    
+	    
+	/** Read Image RGB
+	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
+	 */
+	private  void readImageRGBBox(int width, int height, String imgPath, BufferedImage img, int startX,int startY, int w, int h)
+	{
+		try
+		{
+			int frameLength = width*height*3;
+
+			File file = new File(imgPath);
+			RandomAccessFile raf = new RandomAccessFile(file, "r");
+			raf.seek(0);
+
+			long len = frameLength;
+			byte[] bytes = new byte[(int) len];
+
+			raf.read(bytes);
+
+			int ind = 0;
+			
+			for(int y = 0; y < height; y++)
+			{
+				for(int x = 0; x < width; x++)
+				{
+					//(110,110) w:10 h:10
+					if(x >=startX && y == startY  && x<=startX+w ) {
+						img.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
+					if(x >=startX && y == startY+h  && x<=startX+w ) {
+						img.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
+					if(x ==startX && y >= startY  && y<=startY+h ) {
+						img.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
+					if(x ==startX+w && y >= startY  && y<=startY+h ) {
+						img.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
 					byte a = 0;
 					byte r = bytes[ind];
 					byte g = bytes[ind+height*width];
@@ -266,4 +358,22 @@ public class SliderDemo extends JPanel
             }
         });
     }
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
 }
