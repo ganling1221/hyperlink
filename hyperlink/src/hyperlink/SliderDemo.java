@@ -58,18 +58,27 @@ public class SliderDemo extends JPanel
 	//Set up animation parameters.ç
     static final int FPS_MIN = 1;
     static final int FPS_MAX = 29;
-    static final int FPS_INIT = 15;    //initial frames per second
+    static final int FPS_INIT = 0;    //initial frames per second
 	static int width = 352;
 	static int height = 288;
     int frameNumber = 0;
     int NUM_FRAMES = 30;
-    ImageIcon[] images = new ImageIcon[NUM_FRAMES];
+    Image[] images = new Image[NUM_FRAMES]; // changed from ImageIcon to Image
+    //ImageIcon[] images = new ImageIcon[NUM_FRAMES];
     int delay;
     Timer timer;
     boolean frozen = false;
     String video1Path;
     //This label uses ImageIcon to show the doggy pictures.
-    JLabel picture;
+    static JLabel picture;
+    //JLabel picture;
+    
+    /////
+    private BufferedImage background;
+    private Point startPt = null;
+    private Point endPt = null;
+    private Point currentPt = null;
+    /////
 
     public SliderDemo(String[] paths) {
     	video1Path = paths[0];
@@ -89,6 +98,14 @@ public class SliderDemo extends JPanel
         
 
         framesPerSecond.addChangeListener(this);
+        
+        
+        ///////
+        // Add button to open up new JFrame canvas for drawing bounding box
+        JButton drawButton = new JButton("Draw");
+        drawButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        drawButton.addActionListener(this);
+        ///////
 
         //Turn on labels at major tick marks.
 
@@ -109,20 +126,42 @@ public class SliderDemo extends JPanel
                 BorderFactory.createLoweredBevelBorder(),
                 BorderFactory.createEmptyBorder(10,10,10,10)));
         updatePicture(1); //display first frame
-
+        
         //Put everything together.
         add(sliderLabel);
         add(framesPerSecond);
         add(picture);
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        
+        //////
+        add(drawButton);    // Add button for drawing on canvas JFrame
+        //////
 
         //Set up a timer that calls this object's action handler.
         timer = new Timer(delay, this);
         timer.setInitialDelay(delay * 7); //We pause animation twice per cycle
                                           //by restarting the timer
         timer.setCoalesce(true);
+     
     }
 
+    ///////
+    // Open new JFrame canvas to draw onto BufferedImage and store/replace this image into
+    // current JFrame picture -- In progress
+    public void actionPerformed(ActionEvent e) {
+       JFrame canvas = new JFrame("Edit");
+       canvas.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+       
+       //Add content to the window.
+       canvas.add(picture, BorderLayout.CENTER);
+
+       //Display the window.
+       canvas.pack();
+       canvas.setLocationByPlatform(true); 
+       canvas.setVisible(true); 
+    }
+    ///////
+    
     /** Add a listener for window events. */
     void addWindowListener(Window w) {
         w.addWindowListener(this);
@@ -173,6 +212,7 @@ public class SliderDemo extends JPanel
         frozen = true;
     }
 
+    /*
     //Called when the Timer fires.
     public void actionPerformed(ActionEvent e) {
         //Advance the animation frame.
@@ -189,12 +229,79 @@ public class SliderDemo extends JPanel
 //            timer.restart();
 //        }
     }
+*/
 
+
+    @Override
+    protected void paintComponent(Graphics g) {
+       super.paintComponent(g);
+       if (background != null) {
+          g.drawImage(background, 0, 0, null);
+       }
+
+       if (startPt != null && currentPt != null) {
+          g.setColor(new Color(255, 100, 200));
+          int x = Math.min(startPt.x, currentPt.x);
+          int y = Math.min(startPt.y, currentPt.y);
+          int width = Math.abs(startPt.x - currentPt.x);
+          int height = Math.abs(startPt.y - currentPt.y);
+          g.drawRect(x, y, width, height);
+       }
+    }
+    
+    ///////
+    private class ModifiedMouseAdapter extends MouseAdapter {
+       @Override
+       public void mouseDragged(MouseEvent mEvt) {
+          currentPt = mEvt.getPoint();
+          SliderDemo.this.repaint();
+       }
+
+       @Override
+       public void mouseReleased(MouseEvent mEvt) {
+          endPt = mEvt.getPoint();
+          currentPt = null;
+          
+          Graphics g = background.getGraphics();
+          
+          g.setColor(new Color(255, 0, 0));
+          int x = Math.min(startPt.x, endPt.x);
+          int y = Math.min(startPt.y, endPt.y);
+          int width = Math.abs(startPt.x - endPt.x);
+          int height = Math.abs(startPt.y - endPt.y);
+          g.drawRect(x, y, width, height);
+          g.dispose();
+
+          startPt = null;
+          repaint();
+       }
+
+       @Override
+       public void mousePressed(MouseEvent mEvt) {
+          startPt = mEvt.getPoint();
+       }
+    }
+    
+    
     /** Update the label to display the image for the current frame. */
     protected void updatePicture(int frameNumber) {
         //Set the image.
         if (images[frameNumber] != null) {
-            picture.setIcon(images[frameNumber]);
+           
+           //////
+           // Allow for drawing on top of BufferedImage
+           background = (BufferedImage) images[frameNumber];
+           Graphics g = background.getGraphics();
+           g.drawImage(background, 0, 0, this);
+           g.dispose();
+           
+           ModifiedMouseAdapter myMouseAdapter = new ModifiedMouseAdapter();
+           addMouseMotionListener(myMouseAdapter);
+           addMouseListener(myMouseAdapter);
+           /////
+           
+           picture.setIcon(new ImageIcon(background)); 
+           
         } else { //image not found
             picture.setText("image #" + frameNumber + " not found");
         }
@@ -202,21 +309,25 @@ public class SliderDemo extends JPanel
 
     private void loadPicture(){
     	//Get the image if we haven't already.
-    	for(int i =0; i<NUM_FRAMES;i++) {
-    		String formatted = String.format("%04d", i+1);
+    	for(int i = 0; i < NUM_FRAMES; i++) {
+    		String formatted = String.format("%04d", i + 1);
     		System.out.println(formatted);
-    		images[i] = createImageIcon(video1Path+ formatted + ".rgb");
+    		images[i] = createImageIcon(video1Path + formatted + ".rgb");
+
     	}
         
         
     }
     /** Returns an ImageIcon, or null if the path was invalid. */
-    protected static ImageIcon createImageIcon(String path) {
-        //java.net.URL imgURL = SliderDemo.class.getResource(path);
-    	// Read in the specified image
+    // Changed to Image instead of ImageIcon to allow drawing capabilities
+    protected static Image createImageIcon(String path) {           
+       //java.net.URL imgURL = SliderDemo.class.getResource(path);
+    	
+       // Read in the specified image
 		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		readImageRGB(width, height,path, imgOne);
-		return new ImageIcon(imgOne);
+		readImageRGB(width, height, path, imgOne);
+		
+		return imgOne;
     }
 
 	/** Read Image RGB
@@ -280,10 +391,14 @@ public class SliderDemo extends JPanel
 
         //Display the window.
         frame.pack();
+        frame.setLocationByPlatform(true); /////// added
         frame.setVisible(true);
         //animator.startAnimation(); 
+
+
     }
 
+    
     public static void main(String[] args) {
         /* Turn off metal's use of bold fonts */
         UIManager.put("swing.boldMetal", Boolean.FALSE);
@@ -298,4 +413,7 @@ public class SliderDemo extends JPanel
             }
         });
     }
+    
+    
+    
 }
