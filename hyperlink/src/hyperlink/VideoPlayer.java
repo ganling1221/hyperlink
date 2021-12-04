@@ -144,6 +144,7 @@ public class VideoPlayer extends JPanel
     	  String[] pathAndFrame = clickedOnTracedObject(x,y) ;
     	  if(pathAndFrame != null) {
     	      createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
+    	      stopAnimation();
     	  }
       }
 
