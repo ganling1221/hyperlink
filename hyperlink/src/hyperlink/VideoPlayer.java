@@ -28,13 +28,13 @@ public class VideoPlayer extends JPanel
                                    ChangeListener,
                                    MouseListener{
     /**
-	 * 
-	 */
-	private static final long serialVersionUID = 8466488705895603792L;
-	/**
-	 * 
-	 */
-	//Set up animation parameters.
+     * 
+     */
+    private static final long serialVersionUID = 8466488705895603792L;
+    /**
+     * 
+     */
+    //Set up animation parameters.
     static final int FPS_MIN = 0;
     static final int FPS_MAX = 30;
     static final int FPS_INIT = 15;    //initial frames per second
@@ -42,8 +42,8 @@ public class VideoPlayer extends JPanel
     static String videoPath;
     int frameNumber;
     int NUM_FRAMES = 90000;
-	static int width = 352;
-	static int height = 288;
+    static int width = 352;
+    static int height = 288;
     ImageIcon[] images = new ImageIcon[NUM_FRAMES];
     int delay;
     Timer timer;
@@ -53,7 +53,7 @@ public class VideoPlayer extends JPanel
     JLabel picture;
 
     public VideoPlayer(String path, int num) {
-    	framePath = path;
+        framePath = path;
         setLayout(new BorderLayout());
         frameNumber = num;
         delay = 1000 / FPS_INIT;
@@ -63,18 +63,18 @@ public class VideoPlayer extends JPanel
         JButton play = new JButton("PLAY");
         play.addActionListener(this);
         play.addActionListener(new ActionListener() { 
-        	  public void actionPerformed(ActionEvent e) { 
-        	    startAnimation();
-        	  } 
-        	} );
+              public void actionPerformed(ActionEvent e) { 
+                startAnimation();
+              } 
+            } );
       //Create the button.
         JButton stop = new JButton("STOP");
         stop.addActionListener(this);
         stop.addActionListener(new ActionListener() { 
-        	  public void actionPerformed(ActionEvent e) { 
-        	    stopAnimation();
-        	  } 
-        	} );
+              public void actionPerformed(ActionEvent e) { 
+                stopAnimation();
+              } 
+            } );
         //Create the label that displays the animation.
         picture = new JLabel();
         picture.setHorizontalAlignment(JLabel.CENTER);
@@ -136,34 +136,34 @@ public class VideoPlayer extends JPanel
     }
     
     public void mouseClicked(MouseEvent e) {
-    	String path = null;
-    	int num = 1;
+        String path = null;
+        int num = 1;
       int x=e.getX();
       int y=e.getY();
       if(hyperlinks.containsKey(frameNumber)) {
-    	  String[] pathAndFrame = clickedOnTracedObject(x,y) ;
-    	  if(pathAndFrame != null) {
-    	      createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
-    	      stopAnimation();
-    	  }
+          String[] pathAndFrame = clickedOnTracedObject(x,y) ;
+          if(pathAndFrame != null) {
+              createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
+              stopAnimation();
+          }
       }
 
     }
 
     public String[] clickedOnTracedObject(int x, int y) {
-    	ArrayList<String[]> boxes = hyperlinks.get(frameNumber);
-    	for(int i =0; i<boxes.size();i++) {
-    		int startX = Integer.valueOf(boxes.get(i)[0]);
-    		int startY = Integer.valueOf(boxes.get(i)[1]);
-    		int w = Integer.valueOf(boxes.get(i)[2]);
-    		int h = Integer.valueOf(boxes.get(i)[3]);
+        ArrayList<String[]> boxes = hyperlinks.get(frameNumber);
+        for(int i =0; i<boxes.size();i++) {
+            int startX = Integer.valueOf(boxes.get(i)[0]);
+            int startY = Integer.valueOf(boxes.get(i)[1]);
+            int w = Integer.valueOf(boxes.get(i)[2]);
+            int h = Integer.valueOf(boxes.get(i)[3]);
 
-    		//for the overlapping bounding box, just take the first one created 
-    		if(x >=startX && y >= startY && y <= startY+h  && x<=startX+w ) {    
-    			return new String[] {boxes.get(i)[4],boxes.get(i)[5]};
-    		}
-    	}
-    	return null;//if not found current pointer within any bouding box, return -1
+            //for the overlapping bounding box, just take the first one created 
+            if(x >=startX && y >= startY && y <= startY+h  && x<=startX+w ) {    
+                return new String[] {boxes.get(i)[4],boxes.get(i)[5]};
+            }
+        }
+        return null;//if not found current pointer within any bouding box, return -1
     }
     public void startAnimation() {
         //Start (or restart) animating!
@@ -211,55 +211,55 @@ public class VideoPlayer extends JPanel
     /** Returns an ImageIcon, or null if the path was invalid. */
     protected static ImageIcon createImageIcon(String path) {
         //java.net.URL imgURL = SliderDemo.class.getResource(path);
-    	// Read in the specified image
-		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		readImageRGB(width, height,path, imgOne);
-		return new ImageIcon(imgOne);
+        // Read in the specified image
+        BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        readImageRGB(width, height,path, imgOne);
+        return new ImageIcon(imgOne);
     }
 
-	/** Read Image RGB
-	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
-	 */
-	private static void readImageRGB(int width, int height, String imgPath, BufferedImage img)
-	{
-		try
-		{
-			int frameLength = width*height*3;
+    /** Read Image RGB
+     *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
+     */
+    private static void readImageRGB(int width, int height, String imgPath, BufferedImage img)
+    {
+        try
+        {
+            int frameLength = width*height*3;
 
-			File file = new File(imgPath);
-			RandomAccessFile raf = new RandomAccessFile(file, "r");
-			raf.seek(0);
+            File file = new File(imgPath);
+            RandomAccessFile raf = new RandomAccessFile(file, "r");
+            raf.seek(0);
 
-			long len = frameLength;
-			byte[] bytes = new byte[(int) len];
+            long len = frameLength;
+            byte[] bytes = new byte[(int) len];
 
-			raf.read(bytes);
+            raf.read(bytes);
 
-			int ind = 0;
-			for(int y = 0; y < height; y++)
-			{
-				for(int x = 0; x < width; x++)
-				{
-					byte a = 0;
-					byte r = bytes[ind];
-					byte g = bytes[ind+height*width];
-					byte b = bytes[ind+height*width*2]; 
-					int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-					//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
-					img.setRGB(x,y, pix);
-					ind++;
-				}
-			}
-		}
-		catch (FileNotFoundException e) 
-		{
-			e.printStackTrace();
-		} 
-		catch (IOException e) 
-		{
-			e.printStackTrace();
-		}
-	}
+            int ind = 0;
+            for(int y = 0; y < height; y++)
+            {
+                for(int x = 0; x < width; x++)
+                {
+                    byte a = 0;
+                    byte r = bytes[ind];
+                    byte g = bytes[ind+height*width];
+                    byte b = bytes[ind+height*width*2]; 
+                    int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+                    //int pix = ((a << 24) + (r << 16) + (g << 8) + b);
+                    img.setRGB(x,y, pix);
+                    ind++;
+                }
+            }
+        }
+        catch (FileNotFoundException e) 
+        {
+            e.printStackTrace();
+        } 
+        catch (IOException e) 
+        {
+            e.printStackTrace();
+        }
+    }
     /**
      * Create the GUI and show it.  For thread safety,
      * this method should be invoked from the
@@ -282,50 +282,50 @@ public class VideoPlayer extends JPanel
     }
 
     public static void main(String[] args) {
-		createAndShowGUI(args[0],1);
+        createAndShowGUI(args[0],1);
     }
 
-	@Override
-	public void stateChanged(ChangeEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-	public void loadHyperlink() {
-		hyperlinks = new HashMap<Integer, ArrayList<String[]>>();
-  	  //determine which object 
-  	  //based on the object, read the information in from metafile 
-	  int count = 0; //for each bounding box, there are 7 lines 
-  	  try(BufferedReader br = new BufferedReader(new FileReader(videoPath+"_metadata.txt"))) {
-  		    StringBuilder sb = new StringBuilder();
-  		    String line = br.readLine();
-  		    String[] box = null;
-  		    int fn =1; //frame number
-  		    while (line != null) {
-  		    	//skips the box name
-  		    	if(count == 0 ) {
-  		    		 box = new String[6];
-  		    	}else if(count == 1 ) {
-  		  		    String info =line.split(":")[1];
-  		    		fn = Integer.valueOf(info);
-  		    		hyperlinks.put(fn, new ArrayList<String[]>());  		    		 count++;
- 		    	}else {
- 		  		    String info =line.split(":")[1];
- 		    		box[count-3] = info;
- 		    	}
-  		        count++;
-	  		    line = br.readLine();
-  		        if(count == 9) {
-  		        	count=0;
-  		        	hyperlinks.get(fn).add(box);
-  		        }
-  		    }
-  		} catch (FileNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    public void loadHyperlink() {
+        hyperlinks = new HashMap<Integer, ArrayList<String[]>>();
+      //determine which object 
+      //based on the object, read the information in from metafile 
+      int count = 0; //for each bounding box, there are 7 lines 
+      try(BufferedReader br = new BufferedReader(new FileReader(videoPath+"_metadata.txt"))) {
+            StringBuilder sb = new StringBuilder();
+            String line = br.readLine();
+            String[] box = null;
+            int fn =1; //frame number
+            while (line != null) {
+                //skips the box name
+                if(count == 0 ) {
+                     box = new String[6];
+                }else if(count == 1 ) {
+                    String info =line.split(":")[1];
+                    fn = Integer.valueOf(info);
+                    hyperlinks.put(fn, new ArrayList<String[]>());                       count++;
+                }else {
+                    String info =line.split(":")[1];
+                    box[count-3] = info;
+                }
+                count++;
+                line = br.readLine();
+                if(count == 9) {
+                    count=0;
+                    hyperlinks.get(fn).add(box);
+                }
+            }
+        } catch (FileNotFoundException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            } catch (IOException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
     
-	}
+    }
 }
