@@ -9,6 +9,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +38,8 @@ public class VideoPlayer extends JPanel
     static final int FPS_MIN = 0;
     static final int FPS_MAX = 30;
     static final int FPS_INIT = 15;    //initial frames per second
-    String video1Path;
+    String framePath;
+    static String videoPath;
     int frameNumber;
     int NUM_FRAMES = 90000;
 	static int width = 352;
@@ -44,17 +48,17 @@ public class VideoPlayer extends JPanel
     int delay;
     Timer timer;
     boolean frozen = false;
-
+    Map<Integer, ArrayList<String[]>> hyperlinks;
     //This label uses ImageIcon to show the doggy pictures.
     JLabel picture;
 
     public VideoPlayer(String path, int num) {
-    	video1Path = path;
+    	framePath = path;
         setLayout(new BorderLayout());
         frameNumber = num;
         delay = 1000 / FPS_INIT;
 
-
+        loadHyperlink();
         //Create the button.
         JButton play = new JButton("PLAY");
         play.addActionListener(this);
@@ -136,45 +140,29 @@ public class VideoPlayer extends JPanel
     	int num = 1;
       int x=e.getX();
       int y=e.getY();
-      if(clickedOnTracedObject(x,y)) {
-    	  //determine which object 
-    	  //based on the object, read the information in from metafile 
-	    Pattern pattern = Pattern.compile("path:", Pattern.CASE_INSENSITIVE);
-	    Pattern pattern2 = Pattern.compile("subFrame:", Pattern.CASE_INSENSITIVE);
-
-    	  try(BufferedReader br = new BufferedReader(new FileReader("metadata.txt"))) {
-    		    StringBuilder sb = new StringBuilder();
-    		    String line = br.readLine();
-    		    while (line != null) {
-    		    	//regex match the prefex path:
-    		        Matcher matcher = pattern.matcher(line);
-    		        Matcher matcher2 = pattern2.matcher(line);
-
-    		        boolean matchFound = matcher.find();
-    		        boolean matchFound2 = matcher2.find();
-    		    	if(matchFound) {
-    		    		sb.append(line.split(":")[1]);
-    		    	}
-    		    	if(matchFound2) {
-    		    		num = Integer.valueOf(line.split(":")[1]);
-    		    		break;
-    		    	}
-    		        line = br.readLine();
-    		    }
-    		     path = sb.toString();
-    		} catch (FileNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+      if(hyperlinks.containsKey(frameNumber)) {
+    	  String[] pathAndFrame = clickedOnTracedObject(x,y) ;
+    	  if(pathAndFrame != null) {
+    	      createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
+    	  }
       }
-      createAndShowGUI(path,num);
+
     }
 
-    public boolean clickedOnTracedObject(int x, int y) {
-    	return true;
+    public String[] clickedOnTracedObject(int x, int y) {
+    	ArrayList<String[]> boxes = hyperlinks.get(frameNumber);
+    	for(int i =0; i<boxes.size();i++) {
+    		int startX = Integer.valueOf(boxes.get(i)[0]);
+    		int startY = Integer.valueOf(boxes.get(i)[1]);
+    		int w = Integer.valueOf(boxes.get(i)[2]);
+    		int h = Integer.valueOf(boxes.get(i)[3]);
+
+    		//for the overlapping bounding box, just take the first one created 
+    		if(x >=startX && y >= startY && y <= startY+h  && x<=startX+w ) {    
+    			return new String[] {boxes.get(i)[4],boxes.get(i)[5]};
+    		}
+    	}
+    	return null;//if not found current pointer within any bouding box, return -1
     }
     public void startAnimation() {
         //Start (or restart) animating!
@@ -210,7 +198,7 @@ public class VideoPlayer extends JPanel
         //Get the image if we haven't already.
      
         String formatted = String.format("%04d", frameNumber);
-        ImageIcon image =createImageIcon(video1Path+ formatted + ".rgb");
+        ImageIcon image =createImageIcon(framePath+ formatted + ".rgb");
         //Set the image.
         if (image!= null) {
             picture.setIcon(image);
@@ -279,9 +267,10 @@ public class VideoPlayer extends JPanel
      */
     private static void createAndShowGUI(String arg, int num) {
         //Create and set up the window.
-        JFrame frame = new JFrame("SliderDemo");
+        JFrame frame = new JFrame("VideoPlayer");
+        videoPath = arg;
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        VideoPlayer animator = new VideoPlayer(arg,num);
+        VideoPlayer animator = new VideoPlayer(arg+"/"+arg,num);
                 
         //Add content to the window.
         frame.add(animator, BorderLayout.CENTER);
@@ -299,5 +288,43 @@ public class VideoPlayer extends JPanel
 	public void stateChanged(ChangeEvent e) {
 		// TODO Auto-generated method stub
 		
+	}
+	public void loadHyperlink() {
+		hyperlinks = new HashMap<Integer, ArrayList<String[]>>();
+  	  //determine which object 
+  	  //based on the object, read the information in from metafile 
+	  int count = 0; //for each bounding box, there are 7 lines 
+  	  try(BufferedReader br = new BufferedReader(new FileReader(videoPath+"_metadata.txt"))) {
+  		    StringBuilder sb = new StringBuilder();
+  		    String line = br.readLine();
+  		    String[] box = null;
+  		    int fn =1; //frame number
+  		    while (line != null) {
+  		    	//skips the box name
+  		    	if(count == 0 ) {
+  		    		 box = new String[6];
+  		    	}else if(count == 1 ) {
+  		  		    String info =line.split(":")[1];
+  		    		fn = Integer.valueOf(info);
+  		    		hyperlinks.put(fn, new ArrayList<String[]>());  		    		 count++;
+ 		    	}else {
+ 		  		    String info =line.split(":")[1];
+ 		    		box[count-3] = info;
+ 		    	}
+  		        count++;
+	  		    line = br.readLine();
+  		        if(count == 9) {
+  		        	count=0;
+  		        	hyperlinks.get(fn).add(box);
+  		        }
+  		    }
+  		} catch (FileNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+    
 	}
 }
