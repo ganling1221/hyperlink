@@ -18,11 +18,13 @@ import javax.sound.sampled.DataLine.Info;
  * 
  * @author Giulio
  */
-public class PlaySound {
+public class PlaySound implements Runnable {
 
     private InputStream waveStream;
 
     private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
+    
+    SourceDataLine dataLine = null;
 
     /**
      * CONSTRUCTOR
@@ -48,7 +50,7 @@ public class PlaySound {
 		Info info = new Info(SourceDataLine.class, audioFormat);
 
 		// opens the audio channel
-		SourceDataLine dataLine = null;
+		//SourceDataLine dataLine = null;
 		try {
 		    dataLine = (SourceDataLine) AudioSystem.getLine(info);
 		    dataLine.open(audioFormat, this.EXTERNAL_BUFFER_SIZE);
@@ -79,4 +81,27 @@ public class PlaySound {
 		}
 
     }
+    
+    public void stop() {
+       //dataLine.drain();
+       dataLine.close();
+    }
+    
+    public void unpause() {
+       //dataLine.close();
+       dataLine.start();
+    }
+
+   public void run() {
+
+      try
+      {
+         play();
+      } catch (PlayWaveException e)
+      {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
+      }
+      
+   }
 }
