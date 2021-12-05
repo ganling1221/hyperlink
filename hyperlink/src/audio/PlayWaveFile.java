@@ -9,6 +9,8 @@ import java.io.FileNotFoundException;
  * @author Giulio
  */
 public class PlayWaveFile {
+   
+   PlaySound playSound;
 
     /**
      * <Replace this with one clearly defined responsibility this method does.>
@@ -16,14 +18,17 @@ public class PlayWaveFile {
      * @param args
      *            the name of the wave file to play
      */
-    public static void main(String[] args) {
+    public PlayWaveFile(String audioFileName) {
+    //public static void main(String[] args) {
 
 	// get the command line parameters
-	if (args.length < 1) {
+    if (audioFileName.length() < 1) {
+	//if (args.length < 1) {
 	    System.err.println("usage: java -jar PlayWaveFile.jar [filename]");
 	    return;
 	}
-	String filename = args[0];
+	String filename = audioFileName;
+	//String filename = args[0];
 
 	// opens the inputStream
 	FileInputStream inputStream;
@@ -35,8 +40,9 @@ public class PlayWaveFile {
 	}
 
 	// initializes the playSound Object
-	PlaySound playSound = new PlaySound(inputStream);
-
+	//PlaySound playSound = new PlaySound(inputStream);
+	playSound = new PlaySound(inputStream);
+/*
 	// plays the sound
 	try {
 	    playSound.play();
@@ -44,6 +50,25 @@ public class PlayWaveFile {
 	    e.printStackTrace();
 	    return;
 	}
+	*/
+    }
+
+    public void playWav() throws PlayWaveException {
+       playSound.play();
+       /*
+       try
+      {
+         playSound.play();
+      } catch (PlayWaveException e)
+      {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
+      }
+      */
+    }
+   
+    public void stopWav() {
+       playSound.stop();
     }
 
 }

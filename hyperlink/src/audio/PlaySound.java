@@ -22,6 +22,7 @@ public class PlaySound implements Runnable {
 
     private InputStream waveStream;
 
+    //private final int EXTERNAL_BUFFER_SIZE = 650000; // 128Kb
     private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
     
     SourceDataLine dataLine = null;
@@ -96,8 +97,13 @@ public class PlaySound implements Runnable {
 
       try
       {
+         Thread.sleep(100000);
          play();
       } catch (PlayWaveException e)
+      {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
+      } catch (InterruptedException e)
       {
          // TODO Auto-generated catch block
          e.printStackTrace();

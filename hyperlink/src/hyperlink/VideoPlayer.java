@@ -57,6 +57,7 @@ public class VideoPlayer extends JPanel
     public static String[] inputArgs;
     public static int startAudio = -1;
     private static PlaySound soundtrack;
+    private static PlayWaveFile wavFile;
     int buttonState = -1;    // 0 = PLAY; 1 = PAUSE; 2 = STOP;
     Thread videoThread = null;
     Thread audioThread = null;
@@ -68,6 +69,15 @@ public class VideoPlayer extends JPanel
         frameNumber = num;
         delay = 1000 / FPS_INIT;
 
+        ///////
+        audioThread = null;
+        audioThread = new Thread(new audioFile());
+        
+        videoThread = null;
+        videoThread = new Thread(new videoFile());
+        ///////
+        
+        
 
         //Create the PLAY button.
         JButton play = new JButton("PLAY");
@@ -84,14 +94,14 @@ public class VideoPlayer extends JPanel
                     System.out.println("Incorrect state!");
                  }
                  
-                 //startAnimation();//////
-                 videoThread = new Thread(new videoFile());
-                 audioThread = new Thread(new audioFile());
+                 startAnimation();//////
+                 //videoThread = new Thread(new videoFile());
+                 //audioThread = new Thread(new audioFile());
                  
-                 videoThread.start();
-                 audioThread.start();
-                 videoThread.run();
-                 audioThread.run();
+                 //videoThread.start();
+                 //audioThread.start();
+                 //videoThread.run();
+                 //audioThread.run();
                  //run();
                 //soundtrack.run();
                 
@@ -115,6 +125,8 @@ public class VideoPlayer extends JPanel
                 try
                {
                   stopAnimation();
+                  
+                  
                } catch (InterruptedException e1)
                {
                   // TODO Auto-generated catch block
@@ -123,11 +135,12 @@ public class VideoPlayer extends JPanel
                 
                 //videoThread.interrupt();    ////
                 //audioThread.interrupt();    ////
-                soundtrack.stop();
-                
+                //soundtrack.stop();
+                /*
                 if (getButtonState() == 0) {
-                   soundtrack.run();
+                   startAnimation();
                 }
+                */
               } 
             } );
         
@@ -146,6 +159,7 @@ public class VideoPlayer extends JPanel
                 try
                {
                   stopAnimation();
+                  //wavFile.stopWav();
                } catch (InterruptedException e1)
                {
                   // TODO Auto-generated catch block
@@ -282,11 +296,14 @@ public class VideoPlayer extends JPanel
     
     public void startAnimation() {
         //Start (or restart) animating!
-       
+       //audioThread.start();
+       //videoThread.start();
        //startAudio = 1;  ////////
        //playSound();////
        timer.start();
        frozen = false;
+       
+       audioThread.start();
         /*
         try
         {
@@ -318,7 +335,8 @@ public class VideoPlayer extends JPanel
            frozen = true;
            videoThread.interrupt();
            audioThread.interrupt();
-           soundtrack.stop();
+           wavFile.stopWav();
+           //soundtrack.stop();
            /*
            videoThread.interrupt();    ////
            audioThread.interrupt();    ////
@@ -327,16 +345,31 @@ public class VideoPlayer extends JPanel
            if (getButtonState() == 0) {
               //videoThread.notify();
               //audioThread.notify();
-              videoThread.run();
-              audioThread.run();
-              soundtrack.unpause();
+              //videoThread.run();
+              //audioThread.run();
+              //soundtrack.unpause();
+              timer.start();
+              frozen = false;
+              
+              try
+            {
+               wavFile.playWav();
+            } catch (PlayWaveException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            }
+              videoThread.interrupt();
+              audioThread.interrupt();
+              
            }
            else if (getButtonState() == 2) {
               timer.stop();
               frozen = true;
               videoThread.interrupt();
               audioThread.interrupt();
-              soundtrack.stop();
+              wavFile.stopWav();
+            //soundtrack.stop();
            }
         }
         
@@ -345,7 +378,8 @@ public class VideoPlayer extends JPanel
            frozen = true;
            videoThread.interrupt();
            audioThread.interrupt();
-           soundtrack.stop();
+           wavFile.stopWav();
+           //soundtrack.stop();
         }
         ///////
     }
@@ -446,7 +480,7 @@ public class VideoPlayer extends JPanel
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         VideoPlayer animator = new VideoPlayer(arg, num);
        
-        
+        /*
         //////
         FileInputStream inputWav;
         try {
@@ -460,6 +494,7 @@ public class VideoPlayer extends JPanel
         
         soundtrack = new PlaySound(inputWav);
         //////
+        */
         
         //Add content to the window.
         frame.add(animator, BorderLayout.CENTER);
@@ -475,7 +510,8 @@ public class VideoPlayer extends JPanel
 
 //////
     public static void main(String[] args) {
-       inputArgs = args; 
+       //inputArgs = args; 
+       wavFile = new PlayWaveFile(args[1]);
        createAndShowGUI(args[0], 1);
         /*
         if (startAudio == 1) {
@@ -514,7 +550,19 @@ public class VideoPlayer extends JPanel
    }
 
    public class audioFile implements Runnable {
+      @SuppressWarnings("static-access")
       public void run() {
+         
+         try
+         {
+            //audioThread.sleep(5000);
+            wavFile.playWav();
+         } catch (PlayWaveException e)
+         {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+         }
+         /*
          try
          {
             soundtrack.play();
@@ -523,6 +571,7 @@ public class VideoPlayer extends JPanel
             // TODO Auto-generated catch block
             e.printStackTrace();
          }
+         */
       }
    }
 ////////
