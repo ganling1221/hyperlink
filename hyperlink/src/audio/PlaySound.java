@@ -10,6 +10,9 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
+
+import hyperlink.VideoPlayer;
+
 import javax.sound.sampled.DataLine.Info;
 
 /**
@@ -25,7 +28,9 @@ public class PlaySound implements Runnable {
     //private final int EXTERNAL_BUFFER_SIZE = 650000; // 128Kb
     private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
     
-    SourceDataLine dataLine = null;
+    public SourceDataLine dataLine = null;
+    public AudioInputStream audioInputStream = null;
+    public AudioFormat audioFormat;
 
     /**
      * CONSTRUCTOR
@@ -36,7 +41,7 @@ public class PlaySound implements Runnable {
 
     public void play() throws PlayWaveException {
 
-		AudioInputStream audioInputStream = null;
+		//AudioInputStream audioInputStream = null;
 		try {
 			InputStream bufferedIn = new BufferedInputStream(this.waveStream); // new
 		    audioInputStream = AudioSystem.getAudioInputStream(bufferedIn);
@@ -47,7 +52,8 @@ public class PlaySound implements Runnable {
 		}
 
 		// Obtain the information about the AudioInputStream
-		AudioFormat audioFormat = audioInputStream.getFormat();
+		audioFormat = audioInputStream.getFormat();
+		//AudioFormat audioFormat = audioInputStream.getFormat();
 		Info info = new Info(SourceDataLine.class, audioFormat);
 
 		// opens the audio channel
@@ -83,16 +89,41 @@ public class PlaySound implements Runnable {
 
     }
     
+    public void start() {
+       dataLine.start();
+    }
+    
     public void stop() {
        //dataLine.drain();
        dataLine.close();
     }
     
-    public void unpause() {
+    public void resume() {
        //dataLine.close();
        dataLine.start();
     }
+    
+    public void pause() {
+       dataLine.stop();
+       
+       if (VideoPlayer.currButton == 10) {
+          dataLine.start();
+       }
+    }
 
+    // get current frame position in audio file
+    public int getCurrentAudioPos() {
+       return dataLine.getFramePosition();
+    }
+    
+    public long getAudioLength() {
+       return audioInputStream.getFrameLength();
+    }
+    
+    public float getAudioFrameRate() {
+       return audioFormat.getFrameRate();
+    }
+    
    public void run() {
 
       try

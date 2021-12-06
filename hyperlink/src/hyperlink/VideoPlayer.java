@@ -42,7 +42,7 @@ public class VideoPlayer extends JPanel
     static final int FPS_INIT = 15;    //initial frames per second
     String video1Path;
     int frameNumber;
-    int NUM_FRAMES = 90000;
+    int NUM_FRAMES = 9000;
     static int width = 352;
     static int height = 288;
     ImageIcon[] images = new ImageIcon[NUM_FRAMES];
@@ -61,6 +61,7 @@ public class VideoPlayer extends JPanel
     int buttonState = -1;    // 0 = PLAY; 1 = PAUSE; 2 = STOP;
     Thread videoThread = null;
     Thread audioThread = null;
+    public static int currButton = 1;
     //////
 
     public VideoPlayer(String path, int num) {
@@ -94,12 +95,25 @@ public class VideoPlayer extends JPanel
                     System.out.println("Incorrect state!");
                  }
                  
-                 startAnimation();//////
-                 //videoThread = new Thread(new videoFile());
-                 //audioThread = new Thread(new audioFile());
+                 /*
+                 if (currButton == 10) {
+                    System.out.println("PLAY after PAUSE!");
+                    startAnimation();
+                    soundtrack.start();
+                 }
+                 else {
+                    startAnimation();
+                 }
+                 */
+                 //startAnimation();  //////
                  
+                 
+                 videoThread = new Thread(new videoFile());
+                 audioThread = new Thread(new audioFile());
+                 timer.start();
+                 frozen = false;
                  //videoThread.start();
-                 //audioThread.start();
+                 audioThread.start();
                  //videoThread.run();
                  //audioThread.run();
                  //run();
@@ -125,13 +139,17 @@ public class VideoPlayer extends JPanel
                 try
                {
                   stopAnimation();
+                  //wavFile.pauseWav();
                   
+                  soundtrack.dataLine.stop();
                   
+                  currButton = 10;
                } catch (InterruptedException e1)
                {
                   // TODO Auto-generated catch block
                   e1.printStackTrace();
                }
+               
                 
                 //videoThread.interrupt();    ////
                 //audioThread.interrupt();    ////
@@ -191,7 +209,8 @@ public class VideoPlayer extends JPanel
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
         //Set up a timer that calls this object's action handler.
-        timer = new Timer(delay, this);
+        //timer = new Timer(delay, this);
+        timer = new Timer(FPS_MAX, this);    // Audio/video sync for AIFilmOne, AIFilmTwo,
         timer.setInitialDelay(delay * 7); //We pause animation twice per cycle
                                           //by restarting the timer
         timer.setCoalesce(true);
@@ -304,6 +323,8 @@ public class VideoPlayer extends JPanel
        frozen = false;
        
        audioThread.start();
+       //soundtrack.start();
+      
         /*
         try
         {
@@ -335,8 +356,8 @@ public class VideoPlayer extends JPanel
            frozen = true;
            videoThread.interrupt();
            audioThread.interrupt();
-           wavFile.stopWav();
-           //soundtrack.stop();
+           //wavFile.stopWav();
+           soundtrack.pause();
            /*
            videoThread.interrupt();    ////
            audioThread.interrupt();    ////
@@ -351,14 +372,8 @@ public class VideoPlayer extends JPanel
               timer.start();
               frozen = false;
               
-              try
-            {
-               wavFile.playWav();
-            } catch (PlayWaveException e)
-            {
-               // TODO Auto-generated catch block
-               e.printStackTrace();
-            }
+              //wavFile.playWav();
+            soundtrack.resume();
               videoThread.interrupt();
               audioThread.interrupt();
               
@@ -368,8 +383,8 @@ public class VideoPlayer extends JPanel
               frozen = true;
               videoThread.interrupt();
               audioThread.interrupt();
-              wavFile.stopWav();
-            //soundtrack.stop();
+              //wavFile.stopWav();
+              soundtrack.stop();
            }
         }
         
@@ -378,8 +393,8 @@ public class VideoPlayer extends JPanel
            frozen = true;
            videoThread.interrupt();
            audioThread.interrupt();
-           wavFile.stopWav();
-           //soundtrack.stop();
+           //wavFile.stopWav();
+           soundtrack.stop();
         }
         ///////
     }
@@ -406,7 +421,7 @@ public class VideoPlayer extends JPanel
         //Get the image if we haven't already.
      
         String formatted = String.format("%04d", frameNumber);
-        ImageIcon image =createImageIcon(video1Path+ formatted + ".rgb");
+        ImageIcon image = createImageIcon(video1Path+ formatted + ".rgb");
         //Set the image.
         if (image!= null) {
             picture.setIcon(image);
@@ -511,8 +526,31 @@ public class VideoPlayer extends JPanel
 //////
     public static void main(String[] args) {
        //inputArgs = args; 
-       wavFile = new PlayWaveFile(args[1]);
+       //wavFile = new PlayWaveFile(args[1]);
+       
+       //////////
+       
+       String filename = args[1];
+       //String filename = args[0];
+
+       // opens the inputStream
+       FileInputStream inputStream;
+       try {
+           inputStream = new FileInputStream(filename);
+       } catch (FileNotFoundException e) {
+           e.printStackTrace();
+           return;
+       }
+
+       // initializes the playSound Object
+       //PlaySound playSound = new PlaySound(inputStream);
+       soundtrack = new PlaySound(inputStream);
+       
+       
+       //////////
+       
        createAndShowGUI(args[0], 1);
+       
         /*
         if (startAudio == 1) {
            PlayWaveFile sound = new PlayWaveFile(args[1]);
@@ -545,23 +583,80 @@ public class VideoPlayer extends JPanel
          // TODO Auto-generated method stub
          //VideoPlayer video = new VideoPlayer(video1Path, 1);
          //video.createAndShowGUI(video1Path, 1);
-         startAnimation();
+         
+         //startAnimation();    ///
+         
+         double samplesPerFrame = soundtrack.getAudioFrameRate() / FPS_MAX;
+         System.out.println(samplesPerFrame);
+         
+         int audioPos = 0;
+         while (audioPos < Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
+            updatePicture(frameNumber); // How to know current frameNumber? -- Stored as global var??
+            audioPos++;
+         }
+         
+         while (audioPos > Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
+            // Do nothing??
+         }
+         
+         for (int framePos = audioPos; framePos < NUM_FRAMES; framePos++) {
+            if (frameNumber >= NUM_FRAMES) {
+               try
+               {
+                  stopAnimation();
+               } catch (InterruptedException e)
+               {
+                  // TODO Auto-generated catch block
+                  e.printStackTrace();
+               }
+               break;
+            }
+            else if (getButtonState() == 1 || getButtonState() == 2) {
+               break;
+            }
+            else {
+               while (framePos > Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
+                  // Do nothing??
+                  if (getButtonState() == 2) {
+                     break;
+                  }
+               }
+               
+               while (framePos < Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
+                  updatePicture(frameNumber);
+                  framePos++;
+               }
+               
+               updatePicture(frameNumber);
+               System.gc(); //??????
+            }
+         }
       }
    }
 
    public class audioFile implements Runnable {
       @SuppressWarnings("static-access")
       public void run() {
-         
          try
          {
-            //audioThread.sleep(5000);
-            wavFile.playWav();
+            soundtrack.play();
          } catch (PlayWaveException e)
          {
             // TODO Auto-generated catch block
             e.printStackTrace();
          }
+         /*
+         try
+         {
+            //audioThread.sleep(5000);
+            wavFile.playWav();
+            
+         } catch (PlayWaveException e)
+         {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+         }
+         */
          /*
          try
          {

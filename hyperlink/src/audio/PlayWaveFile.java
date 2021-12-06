@@ -69,6 +69,15 @@ public class PlayWaveFile {
    
     public void stopWav() {
        playSound.stop();
+       
+    }
+    
+    public void pauseWav() {
+       playSound.pause();
+    }
+    
+    public void resumeWav() {
+       playSound.resume();
     }
 
 }
