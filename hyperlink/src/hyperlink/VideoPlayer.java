@@ -13,6 +13,7 @@ import java.io.RandomAccessFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.*;
 import javax.swing.event.*;
 
@@ -39,7 +40,7 @@ public class VideoPlayer extends JPanel
     //Set up animation parameters.
     static final int FPS_MIN = 0;
     static final int FPS_MAX = 30;
-    static final int FPS_INIT = 15;    //initial frames per second
+    static final int FPS_INIT = 30;    //initial frames per second
     String video1Path;
     int frameNumber;
     int NUM_FRAMES = 9000;
@@ -53,16 +54,19 @@ public class VideoPlayer extends JPanel
     //This label uses ImageIcon to show the doggy pictures.
     JLabel picture;
     
-    //////
+
     public static String[] inputArgs;
-    public static int startAudio = -1;
+
     private static PlaySound soundtrack;
     private static PlayWaveFile wavFile;
-    int buttonState = -1;    // 0 = PLAY; 1 = PAUSE; 2 = STOP;
+    int buttonState = -1;    // 0 = PLAY; 1 = PAUSE; 2 = STOP; 3 = REPLAY
     Thread videoThread = null;
     Thread audioThread = null;
-    public static int currButton = 1;
-    //////
+    boolean paused;
+    boolean reset;
+    static FileInputStream inputStream;
+    int currentBytes;
+
 
     public VideoPlayer(String path, int num) {
         video1Path = path;
@@ -70,15 +74,10 @@ public class VideoPlayer extends JPanel
         frameNumber = num;
         delay = 1000 / FPS_INIT;
 
-        ///////
-        audioThread = null;
+
         audioThread = new Thread(new audioFile());
-        
-        videoThread = null;
         videoThread = new Thread(new videoFile());
-        ///////
-        
-        
+
 
         //Create the PLAY button.
         JButton play = new JButton("PLAY");
@@ -87,80 +86,67 @@ public class VideoPlayer extends JPanel
               public void actionPerformed(ActionEvent e) { 
                  setButtonState(0);
                  
-                 if (getButtonState() == 0) {
-                    System.out.println("Button state: PLAY");
+                 videoThread.run();
+                 
+                 if (getButtonState() == 0 && paused == true) {
+                    try
+                  {
+                     playSound();
+                  } catch (IOException e1)
+                  {
+                     // TODO Auto-generated catch block
+                     e1.printStackTrace();
+                  } catch (UnsupportedAudioFileException e1)
+                  {
+                     // TODO Auto-generated catch block
+                     e1.printStackTrace();
+                  }
+                 } 
+                 
+                 if (getButtonState() == 0 && reset == true) {
+
+                    startAnimation();
                     
+                    try
+                  {
+                     playSound();
+                  } catch (IOException e1)
+                  {
+                     // TODO Auto-generated catch block
+                     e1.printStackTrace();
+                  } catch (UnsupportedAudioFileException e1)
+                  {
+                     // TODO Auto-generated catch block
+                     e1.printStackTrace();
+                  }
                  }
-                 else {
-                    System.out.println("Incorrect state!");
-                 }
-                 
-                 /*
-                 if (currButton == 10) {
-                    System.out.println("PLAY after PAUSE!");
-                    startAnimation();
-                    soundtrack.start();
-                 }
-                 else {
-                    startAnimation();
-                 }
-                 */
-                 //startAnimation();  //////
-                 
-                 
-                 videoThread = new Thread(new videoFile());
-                 audioThread = new Thread(new audioFile());
-                 timer.start();
-                 frozen = false;
-                 //videoThread.start();
-                 audioThread.start();
-                 //videoThread.run();
-                 //audioThread.run();
-                 //run();
-                //soundtrack.run();
-                
-                //PlayWaveFile sound = new PlayWaveFile(inputArgs[1]);
-                //playSound();    /////////
+                 paused = false;
+                 reset = false;
               } 
             } );
-        ////////
+        
+        
         // Create the PAUSE button.
         JButton pause = new JButton("PAUSE");
         pause.addActionListener(this);
         pause.addActionListener(new ActionListener() { 
               public void actionPerformed(ActionEvent e) { 
                 setButtonState(1);
-                if (getButtonState() == 1) {
-                   System.out.println("Button state: PAUSE");
-                }
-                else {
-                   System.out.println("Incorrect state!");
-                }
+
                 try
                {
                   stopAnimation();
-                  //wavFile.pauseWav();
+                  stopSound();
+                  paused = true;
                   
-                  soundtrack.dataLine.stop();
-                  
-                  currButton = 10;
                } catch (InterruptedException e1)
                {
                   // TODO Auto-generated catch block
                   e1.printStackTrace();
                }
-               
-                
-                //videoThread.interrupt();    ////
-                //audioThread.interrupt();    ////
-                //soundtrack.stop();
-                /*
-                if (getButtonState() == 0) {
-                   startAnimation();
-                }
-                */
               } 
             } );
+        
         
       //Create the STOP button.
         JButton stop = new JButton("STOP");
@@ -168,25 +154,33 @@ public class VideoPlayer extends JPanel
         stop.addActionListener(new ActionListener() { 
               public void actionPerformed(ActionEvent e) { 
                 setButtonState(2);
-                if (getButtonState() == 2) {
-                   System.out.println("Button state: STOP");
-                }
-                else {
-                   System.out.println("Incorrect state!");
-                }
+                
                 try
                {
                   stopAnimation();
-                  //wavFile.stopWav();
+                  stopSound();
                } catch (InterruptedException e1)
                {
                   // TODO Auto-generated catch block
                   e1.printStackTrace();
                }
-                //videoThread.interrupt();    ////
-                //audioThread.interrupt();    ////
               } 
             } );
+        
+        
+      //Create the REPLAY button.
+        JButton replay = new JButton("REPLAY");
+        replay.addActionListener(this);
+        replay.addActionListener(new ActionListener() { 
+              public void actionPerformed(ActionEvent e) { 
+                setButtonState(3);
+                reset = true;
+
+                resetAnimation();
+                resetSound();
+              } 
+            } );
+        
         //Create the label that displays the animation.
         picture = new JLabel();
         picture.setHorizontalAlignment(JLabel.CENTER);
@@ -200,8 +194,9 @@ public class VideoPlayer extends JPanel
         JPanel buttonsPanel = new JPanel();
         buttonsPanel.setLayout(new FlowLayout());
         buttonsPanel.add(play);
-        buttonsPanel.add(pause);    /////
+        buttonsPanel.add(pause);    
         buttonsPanel.add(stop);
+        buttonsPanel.add(replay);   
         add(buttonsPanel,BorderLayout.NORTH);
 
         add(picture,BorderLayout.CENTER);
@@ -216,6 +211,16 @@ public class VideoPlayer extends JPanel
         timer.setCoalesce(true);
     }
 
+    public void playPause() throws IOException, UnsupportedAudioFileException {
+       if (getButtonState() == 0 && paused) {
+          startAnimation();
+
+          wavFile.playSound.readBytes = currentBytes;
+          wavFile.playSound.resume();
+       }
+       
+    }
+    
     /** Add a listener for window events. */
     void addWindowListener(Window w) {
         w.addWindowListener(this);
@@ -226,6 +231,7 @@ public class VideoPlayer extends JPanel
         try
       {
          stopAnimation();
+         stopSound();   // added
       } catch (InterruptedException e1)
       {
          // TODO Auto-generated catch block
@@ -234,6 +240,18 @@ public class VideoPlayer extends JPanel
     }
     public void windowDeiconified(WindowEvent e) {
         startAnimation();
+        try
+      {
+         playSound();
+      } catch (IOException e1)
+      {
+         // TODO Auto-generated catch block
+         e1.printStackTrace();
+      } catch (UnsupportedAudioFileException e1)
+      {
+         // TODO Auto-generated catch block
+         e1.printStackTrace();
+      }    //added
     }
     public void windowOpened(WindowEvent e) {}
     public void windowClosing(WindowEvent e) {}
@@ -302,101 +320,82 @@ public class VideoPlayer extends JPanel
         return true;
     }
     
-    ///////
-    public void playSound() {
-       timer.start();
-       frozen = false;
+    // Start playing the audio file
+    public void playSound() throws IOException, UnsupportedAudioFileException {
+       if (reset) {
+          try
+         {
+            wavFile.playSound.play();
+         } catch (PlayWaveException e)
+         {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+         }
+          
+       }
        
-       //PlayWaveFile sound = new PlayWaveFile(inputArgs[1]);
+       if (paused) {
+          
+          wavFile.playSound.resume();
+          audioThread.interrupt();
+          
+       }
+       else {
+       
+          audioThread.start();
+       
+       }
        
     }
-    ///////
     
-    
+    // Start playing video/images
     public void startAnimation() {
-        //Start (or restart) animating!
-       //audioThread.start();
-       //videoThread.start();
-       //startAudio = 1;  ////////
-       //playSound();////
+
        timer.start();
        frozen = false;
+
+    }
+    
+    public void stopSound() {
+       // PAUSE button enabled
+       if (getButtonState() == 1) {
+          wavFile.playSound.pause(); 
+       }
        
-       audioThread.start();
-       //soundtrack.start();
-      
-        /*
-        try
-        {
-           soundtrack.play();
-        } catch (PlayWaveException e)
-        {
-           // TODO Auto-generated catch block
-           e.printStackTrace();
-        }
-        */
+       // STOP button enabled
+       if (getButtonState() == 2) {
+          wavFile.playSound.stop(); 
+       }
+       
+       // REPLAY button enabled
+       if (getButtonState() == 3) {
+          wavFile.playSound.reset();
+       }
+       
+       audioThread.interrupt();
     }
 
     public void stopAnimation() throws InterruptedException {
         //Stop the animating thread.
-       //startAudio = 0;  /////////
-       /* 
        timer.stop();
-        frozen = true;
-        
-        videoThread.interrupt();    ////
-        audioThread.interrupt();    ////
-        soundtrack.stop();
-        */
-        ///////
-        // PAUSE
-        if (getButtonState() == 1) {
-           //audioThread.wait();
-           timer.stop();
-           frozen = true;
-           videoThread.interrupt();
-           audioThread.interrupt();
-           //wavFile.stopWav();
-           soundtrack.pause();
-           /*
-           videoThread.interrupt();    ////
-           audioThread.interrupt();    ////
-           soundtrack.stop();
-           */
-           if (getButtonState() == 0) {
-              //videoThread.notify();
-              //audioThread.notify();
-              //videoThread.run();
-              //audioThread.run();
-              //soundtrack.unpause();
-              timer.start();
-              frozen = false;
-              
-              //wavFile.playWav();
-            soundtrack.resume();
-              videoThread.interrupt();
-              audioThread.interrupt();
-              
-           }
-           else if (getButtonState() == 2) {
-              timer.stop();
-              frozen = true;
-              videoThread.interrupt();
-              audioThread.interrupt();
-              //wavFile.stopWav();
-              soundtrack.stop();
-           }
-        }
-        
-        if (getButtonState() == 2) {
-           timer.stop();
-           frozen = true;
-           videoThread.interrupt();
-           audioThread.interrupt();
-           //wavFile.stopWav();
-           soundtrack.stop();
-        }
-        ///////
+       frozen = true;
+       
+       videoThread.interrupt();
+       
+    }
+    
+    public void resetAnimation() {
+       timer.restart();
+       frameNumber = 1;
+       updatePicture(frameNumber);
+       
+       timer.stop();
+       frozen = true;
+       videoThread.interrupt(); 
+    }
+    
+    public void resetSound() {
+       wavFile.playSound.reset();
     }
 
     //Called when the Timer fires.
@@ -488,29 +487,12 @@ public class VideoPlayer extends JPanel
      * event-dispatching thread.
      * @param num 
      */
-    //private!!!!!!
-    public static void createAndShowGUI(String arg, int num) {
+    private static void createAndShowGUI(String arg, int num) {
         //Create and set up the window.
         JFrame frame = new JFrame("SliderDemo");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         VideoPlayer animator = new VideoPlayer(arg, num);
        
-        /*
-        //////
-        FileInputStream inputWav;
-        try {
-           inputWav = new FileInputStream(inputArgs[1]);
-        } 
-        catch (FileNotFoundException e) {
-           // TODO Auto-generated catch block
-           e.printStackTrace();
-           return;
-        } 
-        
-        soundtrack = new PlaySound(inputWav);
-        //////
-        */
-        
         //Add content to the window.
         frame.add(animator, BorderLayout.CENTER);
 
@@ -523,50 +505,27 @@ public class VideoPlayer extends JPanel
        inputArgs = input;
     }
 
-//////
+    
     public static void main(String[] args) {
-       //inputArgs = args; 
-       //wavFile = new PlayWaveFile(args[1]);
-       
-       //////////
-       
-       String filename = args[1];
-       //String filename = args[0];
 
-       // opens the inputStream
-       FileInputStream inputStream;
-       try {
-           inputStream = new FileInputStream(filename);
-       } catch (FileNotFoundException e) {
-           e.printStackTrace();
-           return;
-       }
+       try
+      {
+         wavFile = new PlayWaveFile(args[1]);
+      } catch (PlayWaveException e1)
+      {
+         // TODO Auto-generated catch block
+         e1.printStackTrace();
+      }
 
-       // initializes the playSound Object
-       //PlaySound playSound = new PlaySound(inputStream);
-       soundtrack = new PlaySound(inputStream);
-       
-       
-       //////////
-       
        createAndShowGUI(args[0], 1);
-       
-        /*
-        if (startAudio == 1) {
-           PlayWaveFile sound = new PlayWaveFile(args[1]);
-        }
-        */
-        inputArgs = args;
-        System.out.println(inputArgs.length);   ///////
+
     }
-    ///////
 
     @Override
     public void stateChanged(ChangeEvent e) {
         // TODO Auto-generated method stub
         
     }
-///////
    
     
    public int getButtonState() {
@@ -581,55 +540,52 @@ public class VideoPlayer extends JPanel
    public class videoFile implements Runnable {
       public void run() {
          // TODO Auto-generated method stub
-         //VideoPlayer video = new VideoPlayer(video1Path, 1);
-         //video.createAndShowGUI(video1Path, 1);
-         
-         //startAnimation();    ///
-         
-         double samplesPerFrame = soundtrack.getAudioFrameRate() / FPS_MAX;
-         System.out.println(samplesPerFrame);
-         
-         int audioPos = 0;
-         while (audioPos < Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
-            updatePicture(frameNumber); // How to know current frameNumber? -- Stored as global var??
-            audioPos++;
+         // PLAY button enabled
+         if (getButtonState() == 0) {
+            startAnimation();
+            try
+            {
+               playSound();
+            } catch (IOException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            } catch (UnsupportedAudioFileException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            }
          }
          
-         while (audioPos > Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
-            // Do nothing??
+         // PLAY button enabled after PAUSE
+         if (getButtonState() == 0 && paused == true) {
+            startAnimation();
+            
+            try
+            {
+               playSound();
+            } catch (IOException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            } catch (UnsupportedAudioFileException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            }
          }
          
-         for (int framePos = audioPos; framePos < NUM_FRAMES; framePos++) {
-            if (frameNumber >= NUM_FRAMES) {
-               try
-               {
-                  stopAnimation();
-               } catch (InterruptedException e)
-               {
-                  // TODO Auto-generated catch block
-                  e.printStackTrace();
-               }
-               break;
+         // STOP button enabled
+         if (getButtonState() == 2) {
+            try
+            {
+               stopAnimation();
+            } catch (InterruptedException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
             }
-            else if (getButtonState() == 1 || getButtonState() == 2) {
-               break;
-            }
-            else {
-               while (framePos > Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
-                  // Do nothing??
-                  if (getButtonState() == 2) {
-                     break;
-                  }
-               }
-               
-               while (framePos < Math.round(soundtrack.getCurrentAudioPos() / samplesPerFrame)) {
-                  updatePicture(frameNumber);
-                  framePos++;
-               }
-               
-               updatePicture(frameNumber);
-               System.gc(); //??????
-            }
+            stopSound();
          }
       }
    }
@@ -637,45 +593,21 @@ public class VideoPlayer extends JPanel
    public class audioFile implements Runnable {
       @SuppressWarnings("static-access")
       public void run() {
-         try
+         
+         // Initial PLAY button pressed
+         if (getButtonState() == 0 && paused == false) {
+            try
          {
-            soundtrack.play();
+            wavFile.playSound.play();   // ADDED
+            //soundtrack.play();    WORKINGGG
          } catch (PlayWaveException e)
          {
             // TODO Auto-generated catch block
             e.printStackTrace();
          }
-         /*
-         try
-         {
-            //audioThread.sleep(5000);
-            wavFile.playWav();
-            
-         } catch (PlayWaveException e)
-         {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
          }
-         */
-         /*
-         try
-         {
-            soundtrack.play();
-         } catch (PlayWaveException e)
-         {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-         }
-         */
+         
       }
    }
-////////
-/*
-   @Override
-   public void run()
-   {
-      // TODO Auto-generated method stub
-      startAnimation();
-   }
-   */
+
 }

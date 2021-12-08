@@ -3,6 +3,8 @@ package audio;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
+import javax.swing.Timer;
+
 /**
  * plays a wave file using PlaySound class
  * 
@@ -10,15 +12,16 @@ import java.io.FileNotFoundException;
  */
 public class PlayWaveFile {
    
-   PlaySound playSound;
+   public PlaySound playSound;
 
     /**
      * <Replace this with one clearly defined responsibility this method does.>
      * 
      * @param args
      *            the name of the wave file to play
+    * @throws PlayWaveException 
      */
-    public PlayWaveFile(String audioFileName) {
+    public PlayWaveFile(String audioFileName) throws PlayWaveException {
     //public static void main(String[] args) {
 
 	// get the command line parameters
@@ -42,42 +45,16 @@ public class PlayWaveFile {
 	// initializes the playSound Object
 	//PlaySound playSound = new PlaySound(inputStream);
 	playSound = new PlaySound(inputStream);
-/*
-	// plays the sound
-	try {
-	    playSound.play();
-	} catch (PlayWaveException e) {
-	    e.printStackTrace();
-	    return;
-	}
-	*/
-    }
+	
+	try
+   {
+      Thread.sleep(1000);
+   } catch (InterruptedException e)
+   {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+   }
 
-    public void playWav() throws PlayWaveException {
-       playSound.play();
-       /*
-       try
-      {
-         playSound.play();
-      } catch (PlayWaveException e)
-      {
-         // TODO Auto-generated catch block
-         e.printStackTrace();
-      }
-      */
-    }
-   
-    public void stopWav() {
-       playSound.stop();
-       
-    }
-    
-    public void pauseWav() {
-       playSound.pause();
-    }
-    
-    public void resumeWav() {
-       playSound.resume();
     }
 
 }
