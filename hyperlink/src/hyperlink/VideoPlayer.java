@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,7 +49,7 @@ public class VideoPlayer extends JPanel
     int delay;
     Timer timer;
     boolean frozen = false;
-    Map<Integer, ArrayList<String[]>> hyperlinks;
+    LinkedList<String[]> hyperlinks;
     //This label uses ImageIcon to show the doggy pictures.
     JLabel picture;
 
@@ -140,27 +141,26 @@ public class VideoPlayer extends JPanel
         int num = 1;
       int x=e.getX();
       int y=e.getY();
-      if(hyperlinks.containsKey(frameNumber)) {
-          String[] pathAndFrame = clickedOnTracedObject(x,y) ;
-          if(pathAndFrame != null) {
-              createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
-              stopAnimation();
-          }
+      
+      String[] pathAndFrame = clickedOnTracedObject(x,y) ;
+      if(pathAndFrame != null) {
+          createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
+          stopAnimation();
       }
-
     }
 
     public String[] clickedOnTracedObject(int x, int y) {
-        ArrayList<String[]> boxes = hyperlinks.get(frameNumber);
-        for(int i =0; i<boxes.size();i++) {
-            int startX = Integer.valueOf(boxes.get(i)[0]);
-            int startY = Integer.valueOf(boxes.get(i)[1]);
-            int w = Integer.valueOf(boxes.get(i)[2]);
-            int h = Integer.valueOf(boxes.get(i)[3]);
+        for(int i =0; i<hyperlinks.size();i++) {
+            int startFrame = Integer.valueOf(hyperlinks.get(i)[0]);
+            int endFrame = Integer.valueOf(hyperlinks.get(i)[1]);
+            int startX = Integer.valueOf(hyperlinks.get(i)[2]);
+            int startY = Integer.valueOf(hyperlinks.get(i)[3]);
+            int w = Integer.valueOf(hyperlinks.get(i)[4]);
+            int h = Integer.valueOf(hyperlinks.get(i)[5]);
 
             //for the overlapping bounding box, just take the first one created 
-            if(x >=startX && y >= startY && y <= startY+h  && x<=startX+w ) {    
-                return new String[] {boxes.get(i)[4],boxes.get(i)[5]};
+            if(frameNumber >= startFrame && frameNumber <= endFrame && x >=startX && y >= startY && y <= startY+h  && x<=startX+w ) {    
+                return new String[] {hyperlinks.get(i)[6],hyperlinks.get(i)[7]};
             }
         }
         return null;//if not found current pointer within any bouding box, return -1
@@ -291,7 +291,7 @@ public class VideoPlayer extends JPanel
         
     }
     public void loadHyperlink() {
-        hyperlinks = new HashMap<Integer, ArrayList<String[]>>();
+       hyperlinks = new LinkedList<String[]>();
       //determine which object 
       //based on the object, read the information in from metafile 
       int count = 0; //for each bounding box, there are 7 lines 
@@ -299,24 +299,19 @@ public class VideoPlayer extends JPanel
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
             String[] box = null;
-            int fn =1; //frame number
             while (line != null) {
                 //skips the box name
                 if(count == 0 ) {
-                     box = new String[6];
-                }else if(count == 1 ) {
-                    String info =line.split(":")[1];
-                    fn = Integer.valueOf(info);
-                    hyperlinks.put(fn, new ArrayList<String[]>());                       count++;
+                     box = new String[8];
                 }else {
                     String info =line.split(":")[1];
-                    box[count-3] = info;
+                    box[count-1] = info;
                 }
                 count++;
                 line = br.readLine();
                 if(count == 9) {
                     count=0;
-                    hyperlinks.get(fn).add(box);
+                    hyperlinks.add(box);
                 }
             }
         } catch (FileNotFoundException e1) {
