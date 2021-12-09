@@ -38,7 +38,9 @@ public class PlayAudioClip {
     }
     
     public void playAudioClip() {
+     
        audio.start();
+
     }
     
     public void pauseAudioClip() {
@@ -82,6 +84,23 @@ public class PlayAudioClip {
        this.playAudioClip();
     }
     
+    public void skipAudioClip(long frameNum) throws IOException, LineUnavailableException,
+    UnsupportedAudioFileException {
+       
+       if (frameNum < audio.getMicrosecondLength() && frameNum > 0) {
+          
+          audio.stop();
+          audio.close();
+          
+          resetAudioClipStream();
+          
+          currentFrame = frameNum;
+          
+          audio.setMicrosecondPosition(frameNum);
+
+       }
+    }
+
     public void resetAudioClipStream() throws UnsupportedAudioFileException, IOException,
     LineUnavailableException {
        audioInputStream = AudioSystem.getAudioInputStream(new File(filePath).getAbsoluteFile());
