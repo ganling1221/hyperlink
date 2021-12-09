@@ -132,17 +132,31 @@ public class VideoPlayer extends JPanel
                   // TODO Auto-generated catch block
                   e1.printStackTrace();
                }
+
               } 
             } );
 
+      //Create the REPLAY button.
+        JButton replay = new JButton("REPLAY");
+        replay.addActionListener(this);
+        replay.addActionListener(new ActionListener() { 
+              public void actionPerformed(ActionEvent e) { 
+                setButtonState(3);
+                reset = true;
 
+                resetAnimation();
+                
+                play.setEnabled(true);
+                pause.setEnabled(true);
+              } 
+            } );
+        
         //Create the STOP button.
         JButton stop = new JButton("STOP");
         stop.addActionListener(this);
         stop.addActionListener(new ActionListener() { 
               public void actionPerformed(ActionEvent e) { 
 
-                 audioPath = null;
                 setButtonState(2);
                 
                 try
@@ -154,21 +168,14 @@ public class VideoPlayer extends JPanel
                   // TODO Auto-generated catch block
                   e1.printStackTrace();
                }
+                
+                play.setEnabled(false);
+                pause.setEnabled(false);
               } 
             } );
         
         
-      //Create the REPLAY button.
-        JButton replay = new JButton("REPLAY");
-        replay.addActionListener(this);
-        replay.addActionListener(new ActionListener() { 
-              public void actionPerformed(ActionEvent e) { 
-                setButtonState(3);
-                reset = true;
-
-                resetAnimation();
-              } 
-            } );
+      
 
 
         //Create the label that displays the animation.
@@ -623,3 +630,4 @@ public class VideoPlayer extends JPanel
     
     }
 }
+
