@@ -349,3 +349,4 @@ public class SliderDemo extends JPanel
 	}
 
 }
+

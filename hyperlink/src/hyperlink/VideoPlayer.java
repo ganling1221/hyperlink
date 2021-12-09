@@ -1,6 +1,7 @@
 package hyperlink;
 
 import java.awt.*;
+
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -16,8 +17,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.*;
 import javax.swing.event.*;
+
+import audio.PlayAudioClip;
+import audio.PlayWaveException;
 
 /*
  * SliderDemo.java requires all the files in the images/doggy
@@ -27,7 +33,7 @@ public class VideoPlayer extends JPanel
                         implements ActionListener,
                                    WindowListener,
                                    ChangeListener,
-                                   MouseListener{
+                                   MouseListener {
     /**
      * 
      */
@@ -35,10 +41,15 @@ public class VideoPlayer extends JPanel
     /**
      * 
      */
+
+    private static final long serialVersionUID = 8466488705895603792L;
+    /**
+     * 
+     */
     //Set up animation parameters.
     static final int FPS_MIN = 0;
     static final int FPS_MAX = 30;
-    static final int FPS_INIT = 15;    //initial frames per second
+    static final int FPS_INIT = 30;    //initial frames per second
     String framePath;
     static String videoPath;
     int frameNumber;
@@ -50,32 +61,106 @@ public class VideoPlayer extends JPanel
     Timer timer;
     boolean frozen = false;
     LinkedList<String[]> hyperlinks;
+
     //This label uses ImageIcon to show the doggy pictures.
-    JLabel picture;
+    private JLabel picture;
+    
+
+    private static PlayAudioClip soundtrack;
+    static int buttonState = -1;    // 0 = PLAY; 1 = PAUSE; 2 = STOP; 3 = REPLAY
+    private Thread videoThread = null;
+    private Thread audioThread = null;
+    private boolean paused;
+    private boolean reset;
+
 
     public VideoPlayer(String path, int num) {
+
         framePath = path;
+
         setLayout(new BorderLayout());
         frameNumber = num;
         delay = 1000 / FPS_INIT;
 
+
+
+        audioThread = new Thread(new audioFile());
+        videoThread = new Thread(new videoFile());
+
         loadHyperlink();
-        //Create the button.
+      
+        //Create the PLAY button.
         JButton play = new JButton("PLAY");
         play.addActionListener(this);
         play.addActionListener(new ActionListener() { 
               public void actionPerformed(ActionEvent e) { 
-                startAnimation();
+
+                 setButtonState(0);
+                 
+                 videoThread.run();
+                 soundtrack.playAudioClip();
+                 
+                 paused = false;
+                 reset = false;
               } 
             } );
-      //Create the button.
+        
+        
+        // Create the PAUSE button.
+        JButton pause = new JButton("PAUSE");
+        pause.addActionListener(this);
+        pause.addActionListener(new ActionListener() { 
+              public void actionPerformed(ActionEvent e) { 
+                setButtonState(1);
+
+                try
+               {
+                  stopAnimation();
+                  stopSound();
+                  paused = true;
+                  
+               } catch (InterruptedException | UnsupportedAudioFileException | IOException | LineUnavailableException e1)
+               {
+                  // TODO Auto-generated catch block
+                  e1.printStackTrace();
+               }
+              } 
+            } );
+
+
+        //Create the STOP button.
         JButton stop = new JButton("STOP");
         stop.addActionListener(this);
         stop.addActionListener(new ActionListener() { 
               public void actionPerformed(ActionEvent e) { 
-                stopAnimation();
+
+                setButtonState(2);
+                
+                try
+               {
+                  stopAnimation();
+                  stopSound();
+               } catch (InterruptedException | UnsupportedAudioFileException | IOException | LineUnavailableException e1)
+               {
+                  // TODO Auto-generated catch block
+                  e1.printStackTrace();
+               }
               } 
             } );
+        
+        
+      //Create the REPLAY button.
+        JButton replay = new JButton("REPLAY");
+        replay.addActionListener(this);
+        replay.addActionListener(new ActionListener() { 
+              public void actionPerformed(ActionEvent e) { 
+                setButtonState(3);
+                reset = true;
+
+                resetAnimation();
+              } 
+            } );
+
         //Create the label that displays the animation.
         picture = new JLabel();
         picture.setHorizontalAlignment(JLabel.CENTER);
@@ -89,7 +174,9 @@ public class VideoPlayer extends JPanel
         JPanel buttonsPanel = new JPanel();
         buttonsPanel.setLayout(new FlowLayout());
         buttonsPanel.add(play);
+        buttonsPanel.add(pause);    
         buttonsPanel.add(stop);
+        buttonsPanel.add(replay);   
         add(buttonsPanel,BorderLayout.NORTH);
 
         add(picture,BorderLayout.CENTER);
@@ -97,12 +184,13 @@ public class VideoPlayer extends JPanel
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
         //Set up a timer that calls this object's action handler.
-        timer = new Timer(delay, this);
+        //timer = new Timer(delay, this);
+        timer = new Timer(FPS_MAX, this);    // Audio/video sync for AIFilmOne, AIFilmTwo,
         timer.setInitialDelay(delay * 7); //We pause animation twice per cycle
                                           //by restarting the timer
         timer.setCoalesce(true);
     }
-
+    
     /** Add a listener for window events. */
     void addWindowListener(Window w) {
         w.addWindowListener(this);
@@ -110,10 +198,28 @@ public class VideoPlayer extends JPanel
 
     //React to window events.
     public void windowIconified(WindowEvent e) {
-        stopAnimation();
+        try
+      {
+         stopAnimation();
+         stopSound();  
+      } catch (InterruptedException | UnsupportedAudioFileException | IOException | LineUnavailableException e1)
+      {
+         // TODO Auto-generated catch block
+         e1.printStackTrace();
+      }
     }
+    
     public void windowDeiconified(WindowEvent e) {
         startAnimation();
+
+        try
+      {
+         playSound();
+      } catch (IOException | UnsupportedAudioFileException | PlayWaveException e1)
+      {
+         // TODO Auto-generated catch block
+         e1.printStackTrace();
+      } 
     }
     public void windowOpened(WindowEvent e) {}
     public void windowClosing(WindowEvent e) {}
@@ -146,8 +252,10 @@ public class VideoPlayer extends JPanel
       if(pathAndFrame != null) {
           createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
           stopAnimation();
+
       }
     }
+
 
     public String[] clickedOnTracedObject(int x, int y) {
         for(int i =0; i<hyperlinks.size();i++) {
@@ -165,17 +273,72 @@ public class VideoPlayer extends JPanel
         }
         return null;//if not found current pointer within any bouding box, return -1
     }
+    
+    // Start playing the audio file
+    public void playSound() throws IOException, UnsupportedAudioFileException, PlayWaveException {
+       if (reset) {
+          try
+         {
+            soundtrack.restartAudioClip();
+         } catch (IOException | LineUnavailableException e)
+         {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+         } 
+          
+       }
+       
+       else if (paused) {
+          soundtrack.pauseAudioClip();
+       }
+
+       else {
+          soundtrack.playAudioClip();
+       }
+       
+    }
+    
+    // Start playing video/images
     public void startAnimation() {
-        //Start (or restart) animating!
-        timer.start();
-        frozen = false;
+
+       timer.start();
+       frozen = false;
+
+    }
+    
+    public void stopSound() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
+       // PAUSE button enabled
+       if (getButtonState() == 1) {
+          soundtrack.pauseAudioClip();
+       }
+       
+       // STOP or REPLAY button enabled
+       if (getButtonState() == 2 || getButtonState() == 3) {
+          soundtrack.stopAudioClip();
+       }
+       
+       audioThread.interrupt();
     }
 
-    public void stopAnimation() {
+    public void stopAnimation() throws InterruptedException {
         //Stop the animating thread.
-        timer.stop();
-        frozen = true;
+       timer.stop();
+       frozen = true;
+       
+       videoThread.interrupt();
+       
     }
+    
+    public void resetAnimation() {
+       timer.restart();
+       frameNumber = 1;
+       updatePicture(frameNumber);
+       
+       timer.stop();
+       frozen = true;
+       videoThread.interrupt(); 
+    }
+
 
     //Called when the Timer fires.
     public void actionPerformed(ActionEvent e) {
@@ -199,7 +362,9 @@ public class VideoPlayer extends JPanel
         //Get the image if we haven't already.
      
         String formatted = String.format("%04d", frameNumber);
+
         ImageIcon image =createImageIcon(framePath+ formatted + ".rgb");
+
         //Set the image.
         if (image!= null) {
             picture.setIcon(image);
@@ -271,6 +436,7 @@ public class VideoPlayer extends JPanel
         JFrame frame = new JFrame("VideoPlayer");
         videoPath = arg;
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
         VideoPlayer animator = new VideoPlayer(arg+"/"+arg,num);
                 
         //Add content to the window.
@@ -281,8 +447,18 @@ public class VideoPlayer extends JPanel
         frame.setVisible(true);
     }
 
+
     public static void main(String[] args) {
-        createAndShowGUI(args[0],1);
+       try
+      {
+         soundtrack = new PlayAudioClip(args[1]);
+      } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
+      {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
+      } 
+       
+       createAndShowGUI(args[0], 1);
     }
 
     @Override
@@ -290,6 +466,49 @@ public class VideoPlayer extends JPanel
         // TODO Auto-generated method stub
         
     }
+
+   public int getButtonState() {
+      return buttonState;
+   }
+   
+   private static void setButtonState(int state) {
+      buttonState = state;
+   }
+
+   
+   public class videoFile implements Runnable {
+      public void run() {
+         // TODO Auto-generated method stub
+            startAnimation();
+            try
+            {
+               playSound();
+            } catch (IOException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            } catch (UnsupportedAudioFileException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            } catch (PlayWaveException e)
+            {
+               // TODO Auto-generated catch block
+               e.printStackTrace();
+            }
+
+      }
+   }
+
+   public class audioFile implements Runnable {
+      @SuppressWarnings("static-access")
+      public void run() {
+         
+      }
+   }
+
+}
+
     public void loadHyperlink() {
        hyperlinks = new LinkedList<String[]>();
       //determine which object 
@@ -324,3 +543,4 @@ public class VideoPlayer extends JPanel
     
     }
 }
+
