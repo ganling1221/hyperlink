@@ -130,7 +130,7 @@ public class VideoPlayer extends JPanel
                } catch (InterruptedException | UnsupportedAudioFileException | IOException | LineUnavailableException e1)
                {
                   // TODO Auto-generated catch block
-                  e1.printStackTrace();
+                  //e1.printStackTrace();
                }
 
               } 
@@ -166,7 +166,7 @@ public class VideoPlayer extends JPanel
                } catch (InterruptedException | UnsupportedAudioFileException | IOException | LineUnavailableException e1)
                {
                   // TODO Auto-generated catch block
-                  e1.printStackTrace();
+                  //e1.printStackTrace();
                }
                 
                 play.setEnabled(false);
@@ -222,7 +222,7 @@ public class VideoPlayer extends JPanel
       } catch (InterruptedException | UnsupportedAudioFileException | IOException | LineUnavailableException e1)
       {
          // TODO Auto-generated catch block
-         e1.printStackTrace();
+         //e1.printStackTrace();
       }
     }
     
@@ -235,7 +235,7 @@ public class VideoPlayer extends JPanel
       } catch (IOException | UnsupportedAudioFileException | PlayWaveException e1)
       {
          // TODO Auto-generated catch block
-         e1.printStackTrace();
+         //e1.printStackTrace();
       } 
     }
     public void windowOpened(WindowEvent e) {}
@@ -274,7 +274,7 @@ public class VideoPlayer extends JPanel
       } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e2)
       {
          // TODO Auto-generated catch block
-         e2.printStackTrace();
+         //e2.printStackTrace();
       } 
       int currFrame = frameNumber;
       String[] pathAndFrame = clickedOnTracedObject(x,y) ;
@@ -297,7 +297,7 @@ public class VideoPlayer extends JPanel
          } catch (InterruptedException e1)
          {
             // TODO Auto-generated catch block
-            e1.printStackTrace();
+            //e1.printStackTrace();
          }
           
 
@@ -307,15 +307,12 @@ public class VideoPlayer extends JPanel
          try
          {
             soundtrack = new PlayAudioClip(initialAudio);
-            System.out.println(audioSkip);
-            System.out.println(currFrame);
-            System.out.println(frameNumber);
             
-            soundtrack.skipAudioClip((currFrame/30) * 1000000);
+            soundtrack.skipAudioClip(((currFrame - 2)/30) * 1000000);
          } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e1)
          {
             // TODO Auto-generated catch block
-            e1.printStackTrace();
+            //e1.printStackTrace();
          }
          
       }
@@ -350,7 +347,7 @@ public class VideoPlayer extends JPanel
          } catch (IOException | LineUnavailableException e)
          {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            //e.printStackTrace();
          } 
           
        }
@@ -367,7 +364,7 @@ public class VideoPlayer extends JPanel
          } catch (IOException | LineUnavailableException e)
          {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            //e.printStackTrace();
          } 
        }
        else {
@@ -495,14 +492,11 @@ public class VideoPlayer extends JPanel
                 }
             }
         }
-        catch (FileNotFoundException e) 
-        {
-            e.printStackTrace();
-        } 
         catch (IOException e) 
         {
-            e.printStackTrace();
-        }
+            //e.printStackTrace();
+        } 
+        
     }
     /**
      * Create the GUI and show it.  For thread safety,
@@ -528,7 +522,7 @@ public class VideoPlayer extends JPanel
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
         {
            // TODO Auto-generated catch block
-           e.printStackTrace();
+           //e.printStackTrace();
         } 
                 
         //Add content to the window.
@@ -548,7 +542,7 @@ public class VideoPlayer extends JPanel
       } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e)
       {
          // TODO Auto-generated catch block
-         e.printStackTrace();
+         //e.printStackTrace();
       }
        
        createAndShowGUI(args[0], 1);
@@ -581,7 +575,7 @@ public class VideoPlayer extends JPanel
             } catch (IOException | UnsupportedAudioFileException | PlayWaveException e)
             {
                // TODO Auto-generated catch block
-               e.printStackTrace();
+               //e.printStackTrace();
             } 
 
       }
@@ -620,12 +614,9 @@ public class VideoPlayer extends JPanel
                     hyperlinks.add(box);
                 }
             }
-        } catch (FileNotFoundException e1) {
+        } catch (IOException e1) {
                 // TODO Auto-generated catch block
-                e1.printStackTrace();
-            } catch (IOException e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
+                //e1.printStackTrace();
             }
     
     }
