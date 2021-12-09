@@ -35,6 +35,7 @@ public class VideoPlayer extends JPanel
                                    ChangeListener,
                                    MouseListener {
 
+
     private static final long serialVersionUID = 8466488705895603792L;
     /**
      * 
@@ -244,7 +245,16 @@ public class VideoPlayer extends JPanel
       String[] pathAndFrame = clickedOnTracedObject(x,y) ;
       if(pathAndFrame != null) {
           createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
-          stopAnimation();
+          try
+         {
+            stopAnimation();
+            setButtonState(2);  
+            stopSound();
+         } catch (InterruptedException | UnsupportedAudioFileException | IOException | LineUnavailableException e1)
+         {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+         }
 
       }
     }
@@ -500,7 +510,7 @@ public class VideoPlayer extends JPanel
       }
    }
 
-}
+
 
     public void loadHyperlink() {
        hyperlinks = new LinkedList<String[]>();
@@ -536,4 +546,3 @@ public class VideoPlayer extends JPanel
     
     }
 }
-
