@@ -29,20 +29,23 @@ public class SliderDemo extends JPanel
     static final int FPS_INIT = 15;    //initial frames per second
 	static int width = 352;
 	static int height = 288;
-    int frameNumber = 0;
+    public int frameNumber = 1;
     int NUM_FRAMES = 9000;
     ImageIcon[] images = new ImageIcon[NUM_FRAMES];
     int delay;
     Timer timer;
     boolean frozen = false;
-    String video1Path;
+    String videoPath,framePath;
     //This label uses ImageIcon to show the doggy pictures.
     JLabel picture;
     private Point startPt = null;
     private Point endPt = null;
     private Point currentPt = null;
+    boolean hasVideo = false;
+    int[] currentBoundingBox;
     public SliderDemo(String paths) {
-    	video1Path = paths;
+    	videoPath = paths;
+    	framePath = videoPath+"/"+videoPath;
 
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
@@ -53,22 +56,20 @@ public class SliderDemo extends JPanel
         sliderLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         //Create the slider.
-        JSlider framesPerSecond = new JSlider(JSlider.HORIZONTAL,
+        JSlider frames = new JSlider(JSlider.HORIZONTAL,
                                               FPS_MIN, NUM_FRAMES, FPS_MIN);
-        
-
-        framesPerSecond.addChangeListener(this);
+        frames.addChangeListener(this);
 
         //Turn on labels at major tick marks.
 
-        framesPerSecond.setMajorTickSpacing(1000);
-        framesPerSecond.setMinorTickSpacing(10);
-        framesPerSecond.setPaintTicks(true);
-        framesPerSecond.setPaintLabels(true);
-        framesPerSecond.setBorder(
+        frames.setMajorTickSpacing(1000);
+        frames.setMinorTickSpacing(10);
+        frames.setPaintTicks(true);
+        frames.setPaintLabels(true);
+        frames.setBorder(
                 BorderFactory.createEmptyBorder(0,0,10,0));
         Font font = new Font("Serif", Font.ITALIC, 6);
-        framesPerSecond.setFont(font);
+        frames.setFont(font);
 
         //Create the label that displays the animation.
         picture = new JLabel();
@@ -82,7 +83,7 @@ public class SliderDemo extends JPanel
 
         //Put everything together.
         add(sliderLabel);
-        add(framesPerSecond);
+        add(frames);
         add(picture);
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
@@ -93,6 +94,9 @@ public class SliderDemo extends JPanel
         timer.setCoalesce(true);
     }
 
+    void createHyperlink() {
+    	
+    }
     /** Add a listener for window events. */
     void addWindowListener(Window w) {
         w.addWindowListener(this);
@@ -126,46 +130,17 @@ public class SliderDemo extends JPanel
 //            }
 //        }
         if (!source.getValueIsAdjusting()) {
-        	frameNumber = (int)source.getValue()-1;
+        	frameNumber = (int)source.getValue();
         }
         updatePicture(frameNumber);
-    }
-   
-    public void startAnimation() {
-        //Start (or restart) animating!
-        timer.start();
-        frozen = false;
-    }
-
-    public void stopAnimation() {
-        //Stop the animating thread.
-        timer.stop();
-        frozen = true;
-    }
-
-    //Called when the Timer fires.
-    public void actionPerformed(ActionEvent e) {
-        //Advance the animation frame.
-//        if (frameNumber == (NUM_FRAMES )) {
-//            frameNumber = 1;
-//        } else {
-//            frameNumber++;
-//        }
-//
-//        updatePicture(frameNumber); //display the next picture
-//
-//        if ( frameNumber==(NUM_FRAMES )
-//          || frameNumber==(NUM_FRAMES/2) ) {
-//            timer.restart();
-//        }
     }
 
     /** Update the label to display the image for the current frame. */
     protected void updatePicture(int frameNumber) {
         //Set the image.
-    	String formatted = String.format("%04d", frameNumber+1);
-    	System.out.println(video1Path+ formatted + ".rgb");
-		ImageIcon image  = createImageIcon(video1Path+ formatted + ".rgb");
+    	String formatted = String.format("%04d", frameNumber);
+    	System.out.println(framePath+ formatted + ".rgb");
+		ImageIcon image  = createImageIcon(framePath+ formatted + ".rgb");
 		if(image != null) {
             picture.setIcon(image);
 		}else {
@@ -176,10 +151,10 @@ public class SliderDemo extends JPanel
     /** Update the label to display the image for the current frame. */
     protected void updatePictureBoundingBox(int frameNumber,int x, int y, int w, int h) {
         //Set the image.
-    	String formatted = String.format("%04d", frameNumber+1);
-    	System.out.println(video1Path+ formatted + ".rgb");
+    	String formatted = String.format("%04d", frameNumber);
+    	System.out.println(framePath+ formatted + ".rgb");
 		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		readImageRGBBox(width, height,video1Path+ formatted + ".rgb", imgOne, x, y, w, h);
+		readImageRGBBox(width, height,framePath+ formatted + ".rgb", imgOne, x, y, w, h);
 		ImageIcon image = new ImageIcon(imgOne);
         picture.setIcon(image);       
     }
@@ -238,6 +213,7 @@ public class SliderDemo extends JPanel
 	}
 	
    public void mouseDragged(MouseEvent mEvt) {
+	   
    }
 
    @Override
@@ -249,6 +225,7 @@ public class SliderDemo extends JPanel
       int w = Math.abs(startPt.x - endPt.x);
       int h = Math.abs(startPt.y - endPt.y);
       updatePictureBoundingBox(frameNumber,x,y,w,h);
+      currentBoundingBox = new int[] {x,y,w,h};
       startPt = mEvt.getPoint();
    }
 
@@ -323,41 +300,7 @@ public class SliderDemo extends JPanel
 			e.printStackTrace();
 		}
 	}
-    /**
-     * Create the GUI and show it.  For thread safety,
-     * this method should be invoked from the
-     * event-dispatching thread.
-     * @param args 
-     */
-    private static void createAndShowGUI(String[] args) {
-        //Create and set up the window.
-        JFrame frame = new JFrame("SliderDemo");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        //take in the first file path 
-        SliderDemo animator = new SliderDemo(args[0]);
-        SliderDemo subVideo = new SliderDemo(args[1]);
-
-        //Add content to the window.
-        frame.add(animator, BorderLayout.WEST);
-        frame.add(subVideo, BorderLayout.EAST);
-
-        //Display the window.
-        frame.pack();
-        frame.setVisible(true);
-        //animator.startAnimation(); 
-    }
-
-    public static void main(String[] args) {
-        /* Turn off metal's use of bold fonts */
-        UIManager.put("swing.boldMetal", Boolean.FALSE);
-        //Schedule a job for the event-dispatching thread:
-        //creating and showing this application's GUI.
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                createAndShowGUI(args);
-            }
-        });
-    }
+   
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
@@ -368,6 +311,12 @@ public class SliderDemo extends JPanel
 	@Override
 	public void mouseEntered(MouseEvent e) {
 		// TODO Auto-generated method stub
+		if(hasVideo) {
+			JFrame frame = new JFrame();
+			JOptionPane.showMessageDialog(
+	                frame, "Please drag mouse to select area of interest of the primary video");
+		}
+		hasVideo = false;
 		
 	}
 
@@ -376,4 +325,28 @@ public class SliderDemo extends JPanel
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	public void updatePath(String path) {
+		videoPath = path;
+		framePath = videoPath+"/"+videoPath;
+		updatePicture(frameNumber);
+		hasVideo=true;
+		
+	}
+	public void sethasVideo() {
+		hasVideo = false;
+	}
+	public int[] getCurrentBoundingBox() {
+	      if(currentBoundingBox == null) {
+	    	  return null;
+	      }
+	      return currentBoundingBox;
+	}
+
 }
+
