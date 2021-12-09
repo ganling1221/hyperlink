@@ -34,13 +34,6 @@ public class VideoPlayer extends JPanel
                                    WindowListener,
                                    ChangeListener,
                                    MouseListener {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 8466488705895603792L;
-    /**
-     * 
-     */
 
     private static final long serialVersionUID = 8466488705895603792L;
     /**
