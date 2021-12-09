@@ -71,7 +71,7 @@ public class VideoPlayer extends JPanel
     private Thread audioThread = null;
     private boolean paused;
     private boolean reset;
-    private static boolean skip;
+    private static boolean skip = false;
     
     static long audioSkip;
     static long currAudioPos;
@@ -203,27 +203,27 @@ public class VideoPlayer extends JPanel
          */
        
         picture.addMouseMotionListener(new MouseMotionListener() { 
-			@Override
-			public void mouseDragged(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                // TODO Auto-generated method stub
+                
+            }
 
-			@Override
-			public void mouseMoved(MouseEvent e) {
-				int x=e.getX();
-			 	int y=e.getY();
-		    	String[] pathAndFrame = clickedOnTracedObject(x,y) ;
-		        if(pathAndFrame != null) {
-		        	 // Here we create a hand shaped cursor!
-		            Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
-		            picture.setCursor(cursor);
-		        }else {
-		        	Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
-		        	picture.setCursor(cursor);
-		        }
-		    }	
-		});
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                int x=e.getX();
+                int y=e.getY();
+                String[] pathAndFrame = clickedOnTracedObject(x,y) ;
+                if(pathAndFrame != null) {
+                     // Here we create a hand shaped cursor!
+                    Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
+                    picture.setCursor(cursor);
+                }else {
+                    Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
+                    picture.setCursor(cursor);
+                }
+            }   
+        });
         /**
          * end of showing active link!!!
          */
@@ -306,6 +306,7 @@ public class VideoPlayer extends JPanel
          //e2.printStackTrace();
       } 
       int currFrame = frameNumber;
+      System.out.println("currFrame: " + currFrame);
       String[] pathAndFrame = clickedOnTracedObject(x,y) ;
       if(pathAndFrame != null) {
          newFrameVal = Integer.valueOf(pathAndFrame[1]);
@@ -313,12 +314,23 @@ public class VideoPlayer extends JPanel
          // Find new audioFrame position in microseconds
          audioSkip = ((newFrameVal * SAMPLES_PER_FRAME) / SAMPLES_PER_SECOND) * 1000000;
          
-         if (newFrameVal > 0) {
+         if (newFrameVal > 1) {
             skip = true;
          }
          audioPath = pathAndFrame[0]+"/"+pathAndFrame[0]+".wav";
           createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1])); ///////
-         
+          try
+          {
+             soundtrack = new PlayAudioClip(audioPath);
+            
+             //if (skip) {
+                soundtrack.skipAudioClip(audioSkip);
+             //}
+          } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e2)
+          {
+             // TODO Auto-generated catch block
+             //e.printStackTrace();
+          } 
           try
          {
             stopAnimation();
@@ -335,9 +347,13 @@ public class VideoPlayer extends JPanel
       else {
          try
          {
+            skip = false;
+            //soundtrack = null;
             soundtrack = new PlayAudioClip(initialAudio);
-            
-            soundtrack.skipAudioClip(((currFrame - 2)/30) * 1000000);
+            System.out.println("currFrame: " + currFrame);
+            soundtrack.setAudioClipMicrosecondPosition((currFrame*1000000)/30);
+            //soundtrack.playAudioClip();
+            //soundtrack.skipAudioClip(((currFrame)/30) * 1000000);
          } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e1)
          {
             // TODO Auto-generated catch block
@@ -545,14 +561,15 @@ public class VideoPlayer extends JPanel
         {
            soundtrack = new PlayAudioClip(arg+"/"+arg+".wav");
           
-           if (skip) {
+           //if (skip) {
               soundtrack.skipAudioClip(audioSkip);
-           }
+           //}
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
         {
            // TODO Auto-generated catch block
            //e.printStackTrace();
         } 
+        
                 
         //Add content to the window.
         frame.add(animator, BorderLayout.CENTER);
@@ -650,4 +667,3 @@ public class VideoPlayer extends JPanel
     
     }
 }
-

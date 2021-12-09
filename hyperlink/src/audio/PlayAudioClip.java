@@ -106,5 +106,9 @@ public class PlayAudioClip {
        audioInputStream = AudioSystem.getAudioInputStream(new File(filePath).getAbsoluteFile());
        audio.open(audioInputStream);
     }
+    
+    public void setAudioClipMicrosecondPosition(long num) {
+       audio.setMicrosecondPosition(num);
+    }
  
 }
