@@ -198,6 +198,35 @@ public class VideoPlayer extends JPanel
 
         add(picture,BorderLayout.CENTER);
         picture.addMouseListener(this);
+        /**
+         *  //start of showing active link!!!
+         */
+       
+        picture.addMouseMotionListener(new MouseMotionListener() { 
+			@Override
+			public void mouseDragged(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				int x=e.getX();
+			 	int y=e.getY();
+		    	String[] pathAndFrame = clickedOnTracedObject(x,y) ;
+		        if(pathAndFrame != null) {
+		        	 // Here we create a hand shaped cursor!
+		            Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
+		            picture.setCursor(cursor);
+		        }else {
+		        	Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
+		        	picture.setCursor(cursor);
+		        }
+		    }	
+		});
+        /**
+         * end of showing active link!!!
+         */
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
         //Set up a timer that calls this object's action handler.

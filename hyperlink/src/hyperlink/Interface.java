@@ -94,14 +94,14 @@ public class Interface extends JFrame{
         featurePanel.add(linkList);
         featurePanel.add(saveButton);
 
-             //take in the first file path 
-            video1 = new SliderDemo(primary);
-            add(video1, BorderLayout.WEST);
-        
-       
-            //take in the second file path 
-            video2 = new SliderDemo(secondary);
-            add(video2, BorderLayout.EAST);
+         //take in the first file path 
+        video1 = new SliderDemo(primary);
+        add(video1, BorderLayout.WEST);
+    
+   
+        //take in the second file path 
+        video2 = new SliderDemo(secondary);
+        add(video2, BorderLayout.EAST);
         
         
         
@@ -113,7 +113,12 @@ public class Interface extends JFrame{
 		if(hyperlinks.containsKey(link)) {
 			int startFrame = Integer.valueOf(hyperlinks.get(link)[0]);
 			video1.frameNumber=startFrame;
+			video1.setJSliderLabel(startFrame);
 			video1.updatePictureBoundingBox(startFrame, 0, 0, 0, 0);
+			int subFrame = Integer.valueOf(hyperlinks.get(link)[7]);
+			video2.setJSliderLabel(subFrame);
+			video2.updatePictureBoundingBox(subFrame, 0, 0, 0, 0);
+
 		}
 		
 	} 
@@ -156,6 +161,7 @@ public class Interface extends JFrame{
           }
           primary = s;
            //take in the first file path 
+          
           video1.updatePath(s);  ///////
           hyperlinks = new HashMap<String, String[]>();
           //for each primary video, create a metadata file with the video name 
@@ -171,7 +177,7 @@ public class Interface extends JFrame{
               e.printStackTrace();
             }
           clearLinks();
-
+         
         }else if(mode == 1) {
             //import primary video
           String s = (String)JOptionPane.showInputDialog(

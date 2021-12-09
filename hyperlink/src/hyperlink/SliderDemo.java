@@ -49,16 +49,13 @@ public class SliderDemo extends JPanel
     boolean hasVideo = false;
     int[] currentBoundingBox;
     JSlider frames;
+    JLabel sliderLabel;
     public SliderDemo(String paths) {
     	videoPath = paths;
     	framePath = videoPath+"/"+videoPath;
-
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-
-       //delay = 1000 / FPS_INIT;
-
         //Create the label.
-        JLabel sliderLabel = new JLabel("Frames Number", JLabel.CENTER);
+        sliderLabel = new JLabel("Frames Number: " +frameNumber, JLabel.CENTER);
         sliderLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         //Create the slider.
@@ -126,21 +123,10 @@ public class SliderDemo extends JPanel
     /** Listen to the slider. */
     public void stateChanged(ChangeEvent e) {
         JSlider source = (JSlider)e.getSource();
-//        if (!source.getValueIsAdjusting()) {
-//            int fps = (int)source.getValue();
-//            if (fps == 0) {
-//                if (!frozen) stopAnimation();
-//            } else {
-//                delay = 1000 / fps;
-//                timer.setDelay(delay);
-//                timer.setInitialDelay(delay * 10);
-//                if (frozen) startAnimation();
-//            }
-//        }
         if (!source.getValueIsAdjusting()) {
         	frameNumber = (int)source.getValue();
         }
-        
+        sliderLabel.setText("Frames Number: " +frameNumber);
         updatePictureBoundingBox(frameNumber,0,0,0,0); 
 
     }
@@ -178,7 +164,6 @@ public class SliderDemo extends JPanel
    @Override
    public void mouseReleased(MouseEvent mEvt) {
       endPt = mEvt.getPoint();
-      
       int x = Math.min(startPt.x, endPt.x);
       int y  = Math.min(startPt.y, endPt.y);
       int w = Math.abs(startPt.x - endPt.x);
@@ -253,11 +238,11 @@ public class SliderDemo extends JPanel
 		}
 		catch (FileNotFoundException e) 
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 		} 
 		catch (IOException e) 
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 	
@@ -319,11 +304,11 @@ public class SliderDemo extends JPanel
 		}
 		catch (FileNotFoundException e) 
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 		} 
 		catch (IOException e) 
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 	/** Read Image RGB
@@ -424,6 +409,7 @@ public class SliderDemo extends JPanel
 	public void updatePath(String path) {
 		videoPath = path;
 		framePath = videoPath+"/"+videoPath;
+        linkedFrames = new HashMap<Integer, BufferedImage>();
         updatePictureBoundingBox(frameNumber,0,0,0,0); //display first frame
 		hasVideo=true;
 		
@@ -444,5 +430,9 @@ public class SliderDemo extends JPanel
 	      return currentFrame;
 	}
 
+	public void setJSliderLabel(int num) {
+        sliderLabel.setText("Frames Number: " +num);
+
+	}
 }
 
