@@ -1,6 +1,7 @@
 package hyperlink;
 
 import java.awt.BorderLayout;
+import java.awt.image.BufferedImage;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
@@ -29,12 +30,9 @@ public class Interface extends JFrame{
      * constructor
      */
      String primary;
-     String primaryMovieName;   ////
      String secondary;
-     String secondaryMovieName; /////
      SliderDemo video1;
      SliderDemo video2;
-     JButton connectButton;
      JComboBox linkList; 
      Map<String,String[]> hyperlinks;
      File myFile;
@@ -61,20 +59,28 @@ public class Interface extends JFrame{
           } 
         } );
         JLabel linkLable = new JLabel("SELECT LINK:", JLabel.CENTER);
-        linkList = new JComboBox();
+        
+        
+
         createButton = new JButton("Create HYPERLINK");
         createButton.addActionListener(new ActionListener() { 
           public void actionPerformed(ActionEvent e) { 
             createNewConnection();
           } 
         } );
-        
-        connectButton = new JButton("Connect For Selected Link");
-        connectButton.addActionListener(new ActionListener() { 
-          public void actionPerformed(ActionEvent e) { 
-            connectVideo((String) linkList.getSelectedItem());
-          } 
-        } );
+        String[] linkNames = { "NONE"};
+        linkList = new JComboBox(linkNames);
+        linkList.setSelectedIndex(0);
+        linkList.addActionListener(new ActionListener() { 
+            public void actionPerformed(ActionEvent e) { 
+            	if(linkList.getSelectedIndex() !=0) {
+            		 jumpToLink((String) linkList.getSelectedItem());
+            	}
+             
+            }
+
+			
+          } );
         JButton saveButton = new JButton("Save Video");
         saveButton.addActionListener(new ActionListener() { 
           public void actionPerformed(ActionEvent e) { 
@@ -86,7 +92,6 @@ public class Interface extends JFrame{
         featurePanel.add(createButton);
         featurePanel.add(linkLable);
         featurePanel.add(linkList);
-        featurePanel.add(connectButton);
         featurePanel.add(saveButton);
 
              //take in the first file path 
@@ -104,12 +109,20 @@ public class Interface extends JFrame{
         setVisible(true);
         
     }
+    private void jumpToLink(String link) {
+		if(hyperlinks.containsKey(link)) {
+			int startFrame = Integer.valueOf(hyperlinks.get(link)[0]);
+			video1.frameNumber=startFrame;
+			video1.updatePictureBoundingBox(startFrame, 0, 0, 0, 0);
+		}
+		
+	} 
     public void createNewConnection(){
         JFrame frame = new JFrame();
         //enable the connect button
         String s = (String)JOptionPane.showInputDialog(
                 frame,
-                "Enter the name of the selected link :\n"
+                "Enter the name of the HyperLink link or Create a New Link:\n"
                 + "\"Name the HyperLink: \"",
                 "CREATE HYPERLINK",
                 JOptionPane.WARNING_MESSAGE,
@@ -119,20 +132,13 @@ public class Interface extends JFrame{
         	 if(video1.getCurrentBoundingBox() ==null) {
                  return;
              }
-             linkList.addItem(s);
+           
         	createLink(s);
+        	//overwirte the new 
+        	video1.linkedFrames.put(video1.frameNumber, video1.getCurrentFrame());
         }
-        
     }
-    public void connectVideo(String linkName){
-        if(linkName!=null) {
-        	 if(video1.getCurrentBoundingBox() ==null) {
-                 return;
-             }
-        	createLink(linkName);
-        }
-        
-    }
+ 
     public String importVideo(int mode) {
         JFrame frame = new JFrame();
         if(mode == 0) {
@@ -151,7 +157,7 @@ public class Interface extends JFrame{
           primary = s;
            //take in the first file path 
           video1.updatePath(s);  ///////
-          hyperlinks = new HashMap<String, String[]>();;
+          hyperlinks = new HashMap<String, String[]>();
           //for each primary video, create a metadata file with the video name 
           try {
               myFile = new File(s+"_metadata.txt");
@@ -190,7 +196,6 @@ public class Interface extends JFrame{
         
         //boundingBoxList.add(video1.getCurrentBoundingBox());
         //if no box is drawn, then ignore the button action
-       
     	if(hyperlinks.containsKey(name)) {
     		//adding a frame to current hyperlinks 
     		String[] currentLink = hyperlinks.get(name);
@@ -208,6 +213,8 @@ public class Interface extends JFrame{
     		currentLink[5] = ""+Math.max(video1.getCurrentBoundingBox()[3],Integer.valueOf(currentLink[5])); 
     		//wont not update the link cause on link can only linke to one subframe of one subvideo
     	}else {
+   		 linkList.addItem(name);
+
     		hyperlinks.put(name, new String[] {video1.frameNumber+"",video1.frameNumber+"",
     				video1.getCurrentBoundingBox()[0]+"",
     				video1.getCurrentBoundingBox()[1]+"",
@@ -226,6 +233,7 @@ public class Interface extends JFrame{
     }
     public void clearLinks() {
         linkList.removeAllItems();
+        linkList.addItem("NONE");
     }
     public void saveFile() {
     	try{

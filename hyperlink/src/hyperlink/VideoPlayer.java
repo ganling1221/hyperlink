@@ -50,6 +50,7 @@ public class VideoPlayer extends JPanel
     Timer timer;
     boolean frozen = false;
     LinkedList<String[]> hyperlinks;
+    static JFrame frame;
     //This label uses ImageIcon to show the doggy pictures.
     JLabel picture;
 
@@ -58,8 +59,9 @@ public class VideoPlayer extends JPanel
         setLayout(new BorderLayout());
         frameNumber = num;
         delay = 1000 / FPS_INIT;
-
+        
         loadHyperlink();
+       
         //Create the button.
         JButton play = new JButton("PLAY");
         play.addActionListener(this);
@@ -94,6 +96,37 @@ public class VideoPlayer extends JPanel
 
         add(picture,BorderLayout.CENTER);
         picture.addMouseListener(this);
+        
+        
+        /**
+         *  //start of showing active link!!!
+         */
+       
+        picture.addMouseMotionListener(new MouseMotionListener() { 
+			@Override
+			public void mouseDragged(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				int x=e.getX();
+			 	int y=e.getY();
+		    	String[] pathAndFrame = clickedOnTracedObject(x,y) ;
+		        if(pathAndFrame != null) {
+		        	 // Here we create a hand shaped cursor!
+		            Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
+		            picture.setCursor(cursor);
+		        }else {
+		        	Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
+		        	picture.setCursor(cursor);
+		        }
+		    }	
+		});
+        /**
+         * end of showing active link!!!
+         */
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
         //Set up a timer that calls this object's action handler.
@@ -129,8 +162,9 @@ public class VideoPlayer extends JPanel
         }
     
     public void mouseEntered(MouseEvent e) {
-       
+    
     }
+	 	
     
     public void mouseExited(MouseEvent e) {
        
@@ -268,21 +302,18 @@ public class VideoPlayer extends JPanel
      */
     private static void createAndShowGUI(String arg, int num) {
         //Create and set up the window.
-        JFrame frame = new JFrame("VideoPlayer");
+        frame = new JFrame("VideoPlayer");
         videoPath = arg;
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         VideoPlayer animator = new VideoPlayer(arg+"/"+arg,num);
-                
         //Add content to the window.
         frame.add(animator, BorderLayout.CENTER);
-
         //Display the window.
         frame.pack();
         frame.setVisible(true);
     }
 
     public static void main(String[] args) {
-        createAndShowGUI(args[0],1);
     }
 
     @Override

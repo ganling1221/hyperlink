@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.*;
 import javax.swing.event.*;
@@ -31,7 +33,10 @@ public class SliderDemo extends JPanel
 	static int height = 288;
     public int frameNumber = 1;
     int NUM_FRAMES = 9000;
-    ImageIcon[] images = new ImageIcon[NUM_FRAMES];
+    BufferedImage drawnFrame;
+    BufferedImage currentFrame;
+    public Map<Integer,BufferedImage> linkedFrames;
+
     int delay;
     Timer timer;
     boolean frozen = false;
@@ -43,6 +48,7 @@ public class SliderDemo extends JPanel
     private Point currentPt = null;
     boolean hasVideo = false;
     int[] currentBoundingBox;
+    JSlider frames;
     public SliderDemo(String paths) {
     	videoPath = paths;
     	framePath = videoPath+"/"+videoPath;
@@ -56,7 +62,7 @@ public class SliderDemo extends JPanel
         sliderLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         //Create the slider.
-        JSlider frames = new JSlider(JSlider.HORIZONTAL,
+        frames = new JSlider(JSlider.HORIZONTAL,
                                               FPS_MIN, NUM_FRAMES, FPS_MIN);
         frames.addChangeListener(this);
 
@@ -79,7 +85,9 @@ public class SliderDemo extends JPanel
         picture.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLoweredBevelBorder(),
                 BorderFactory.createEmptyBorder(10,10,10,10)));
-        updatePicture(1); //display first frame
+        linkedFrames = new HashMap<Integer, BufferedImage>();
+
+        updatePictureBoundingBox(1,0,0,0,0); //display first frame
 
         //Put everything together.
         add(sliderLabel);
@@ -132,86 +140,37 @@ public class SliderDemo extends JPanel
         if (!source.getValueIsAdjusting()) {
         	frameNumber = (int)source.getValue();
         }
-        updatePicture(frameNumber);
+        
+        updatePictureBoundingBox(frameNumber,0,0,0,0); 
+
     }
 
     /** Update the label to display the image for the current frame. */
-    protected void updatePicture(int frameNumber) {
+    public BufferedImage updatePictureBoundingBox(int frameNumber,int x, int y, int w, int h) {
+    	
         //Set the image.
     	String formatted = String.format("%04d", frameNumber);
     	System.out.println(framePath+ formatted + ".rgb");
-		ImageIcon image  = createImageIcon(framePath+ formatted + ".rgb");
-		if(image != null) {
-            picture.setIcon(image);
-		}else {
-			System.out.println("No such image");
-		}
-        
-    }
-    /** Update the label to display the image for the current frame. */
-    protected void updatePictureBoundingBox(int frameNumber,int x, int y, int w, int h) {
-        //Set the image.
-    	String formatted = String.format("%04d", frameNumber);
-    	System.out.println(framePath+ formatted + ".rgb");
-		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    	if(linkedFrames.containsKey(frameNumber)) {
+        	BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+    		readImageRGBWithLinks(width, height, imgOne, linkedFrames.get(frameNumber), x,y,w,h);
+			ImageIcon image = new ImageIcon(imgOne);
+	        picture.setIcon(image); 
+        	BufferedImage proxy = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    		readImageRGBWithLinkStore(width, height, proxy, linkedFrames.get(frameNumber), x,y,w,h);
+	        return proxy;
+    		
+    	}
+    	BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    	BufferedImage imgStore = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    	readImageRGBStore(width, height,framePath+ formatted + ".rgb", imgStore, x, y, w, h);
 		readImageRGBBox(width, height,framePath+ formatted + ".rgb", imgOne, x, y, w, h);
 		ImageIcon image = new ImageIcon(imgOne);
-        picture.setIcon(image);       
-    }
-    
-    /** Returns an ImageIcon, or null if the path was invalid. */
-    protected  ImageIcon createImageIcon(String path) {
-        //java.net.URL imgURL = SliderDemo.class.getResource(path);
-    	// Read in the specified image
-		BufferedImage imgOne = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		readImageRGB(width, height,path, imgOne);
-		return new ImageIcon(imgOne);
+        picture.setIcon(image); 
+        return imgStore;
     }
 
-	/** Read Image RGB
-	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
-	 */
-	private static void readImageRGB(int width, int height, String imgPath, BufferedImage img)
-	{
-		try
-		{
-			int frameLength = width*height*3;
-
-			File file = new File(imgPath);
-			RandomAccessFile raf = new RandomAccessFile(file, "r");
-			raf.seek(0);
-
-			long len = frameLength;
-			byte[] bytes = new byte[(int) len];
-
-			raf.read(bytes);
-
-			int ind = 0;
-			for(int y = 0; y < height; y++)
-			{
-				for(int x = 0; x < width; x++)
-				{
-					byte a = 0;
-					byte r = bytes[ind];
-					byte g = bytes[ind+height*width];
-					byte b = bytes[ind+height*width*2]; 
-					int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-					//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
-					img.setRGB(x,y, pix);
-					ind++;
-				}
-			}
-		}
-		catch (FileNotFoundException e) 
-		{
-			e.printStackTrace();
-		} 
-		catch (IOException e) 
-		{
-			e.printStackTrace();
-		}
-	}
-	
    public void mouseDragged(MouseEvent mEvt) {
 	   
    }
@@ -224,7 +183,7 @@ public class SliderDemo extends JPanel
       int y  = Math.min(startPt.y, endPt.y);
       int w = Math.abs(startPt.x - endPt.x);
       int h = Math.abs(startPt.y - endPt.y);
-      updatePictureBoundingBox(frameNumber,x,y,w,h);
+      currentFrame=updatePictureBoundingBox(frameNumber,x,y,w,h);
       currentBoundingBox = new int[] {x,y,w,h};
       startPt = mEvt.getPoint();
    }
@@ -232,6 +191,7 @@ public class SliderDemo extends JPanel
    @Override
    public void mousePressed(MouseEvent mEvt) {
       startPt = mEvt.getPoint();
+      currentFrame=null;
    }
 	    
 	    
@@ -300,8 +260,138 @@ public class SliderDemo extends JPanel
 			e.printStackTrace();
 		}
 	}
-   
+	
+	/** Read Image RGB
+	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
+	 */
+	private  void readImageRGBStore(int width, int height, String imgPath, BufferedImage img, int startX,int startY, int w, int h)
+	{
+		try
+		{
+			int frameLength = width*height*3;
 
+			File file = new File(imgPath);
+			RandomAccessFile raf = new RandomAccessFile(file, "r");
+			raf.seek(0);
+
+			long len = frameLength;
+			byte[] bytes = new byte[(int) len];
+
+			raf.read(bytes);
+
+			int ind = 0;
+			
+			for(int y = 0; y < height; y++)
+			{
+				for(int x = 0; x < width; x++)
+				{
+					//(110,110) w:10 h:10
+					if(x >=startX && y == startY  && x<=startX+w ) {
+						img.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
+					if(x >=startX && y == startY+h  && x<=startX+w ) {
+						img.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
+					if(x ==startX && y >= startY  && y<=startY+h ) {
+						img.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
+					if(x ==startX+w && y >= startY  && y<=startY+h ) {
+						img.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						ind++;
+						continue;
+					}
+					byte a = 0;
+					byte r = bytes[ind];
+					byte g = bytes[ind+height*width];
+					byte b = bytes[ind+height*width*2]; 
+					int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
+					img.setRGB(x,y, pix);
+					ind++;
+				}
+			}
+		}
+		catch (FileNotFoundException e) 
+		{
+			e.printStackTrace();
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	/** Read Image RGB
+	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
+	 * @param bufferedImage 
+	 */
+	private  void readImageRGBWithLinks(int width, int height, BufferedImage bufferedImage, BufferedImage img, int startX,int startY, int w, int h)
+	{
+			for(int y = 0; y < height; y++)
+			{
+				for(int x = 0; x < width; x++)
+				{
+					//(110,110) w:10 h:10
+					
+					if(x >=startX && y == startY  && x<=startX+w ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					if(x >=startX && y == startY+h  && x<=startX+w ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					if(x ==startX && y >= startY  && y<=startY+h ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					if(x ==startX+w && y >= startY  && y<=startY+h ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((255 & 0xff) << 16) | ((0 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					bufferedImage.setRGB(x,y,img.getRGB(x,y));
+				
+				}
+			}
+	}
+		
+	/** Read Image RGB
+	 *  Reads the image of given width and height at the given imgPath into the provided BufferedImage.
+	 */
+	private  void readImageRGBWithLinkStore(int width, int height, BufferedImage bufferedImage, BufferedImage img, int startX,int startY, int w, int h)
+	{
+			for(int y = 0; y < height; y++)
+			{
+				for(int x = 0; x < width; x++)
+				{
+					//(110,110) w:10 h:10
+					
+					if(x >=startX && y == startY  && x<=startX+w ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					if(x >=startX && y == startY+h  && x<=startX+w ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					if(x ==startX && y >= startY  && y<=startY+h ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					if(x ==startX+w && y >= startY  && y<=startY+h ) {
+						bufferedImage.setRGB(x,y, 0xff000000 | ((0 & 0xff) << 16) | ((255 & 0xff) << 8) | (0 & 0xff));
+						continue;
+					}
+					bufferedImage.setRGB(x,y,img.getRGB(x,y));
+				
+				}
+			}
+	}
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		// TODO Auto-generated method stub
@@ -334,7 +424,7 @@ public class SliderDemo extends JPanel
 	public void updatePath(String path) {
 		videoPath = path;
 		framePath = videoPath+"/"+videoPath;
-		updatePicture(frameNumber);
+        updatePictureBoundingBox(frameNumber,0,0,0,0); //display first frame
 		hasVideo=true;
 		
 	}
@@ -346,6 +436,12 @@ public class SliderDemo extends JPanel
 	    	  return null;
 	      }
 	      return currentBoundingBox;
+	}
+	public BufferedImage getCurrentFrame() {
+	      if(currentFrame == null) {
+	    	  return null;
+	      }
+	      return currentFrame;
 	}
 
 }
