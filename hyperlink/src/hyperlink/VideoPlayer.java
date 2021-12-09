@@ -59,11 +59,13 @@ public class VideoPlayer extends JPanel
     Timer timer;
     boolean frozen = false;
     LinkedList<String[]> hyperlinks;
+
     //This label uses ImageIcon to show the doggy pictures.
     private JLabel picture;
     
 
     private static PlayAudioClip soundtrack;
+    private static PlayAudioClip initialSoundtrack;
     static int buttonState = -1;    // 0 = PLAY; 1 = PAUSE; 2 = STOP; 3 = REPLAY
     private Thread videoThread = null;
     private Thread audioThread = null;
@@ -72,7 +74,10 @@ public class VideoPlayer extends JPanel
     private static boolean skip;
     
     static long audioSkip;
+    static long currAudioPos;
     static int newFrameVal;
+    String audioPath;
+    static String initialAudio;
 
 
     public VideoPlayer(String path, int num) {
@@ -99,6 +104,7 @@ public class VideoPlayer extends JPanel
                  setButtonState(0);
                  
                  videoThread.run();
+                 
                  soundtrack.playAudioClip();
                  
                  paused = false;
@@ -136,6 +142,7 @@ public class VideoPlayer extends JPanel
         stop.addActionListener(new ActionListener() { 
               public void actionPerformed(ActionEvent e) { 
 
+                 audioPath = null;
                 setButtonState(2);
                 
                 try
@@ -163,6 +170,7 @@ public class VideoPlayer extends JPanel
               } 
             } );
 
+
         //Create the label that displays the animation.
         picture = new JLabel();
         picture.setHorizontalAlignment(JLabel.CENTER);
@@ -178,42 +186,11 @@ public class VideoPlayer extends JPanel
         buttonsPanel.add(play);
         buttonsPanel.add(pause);    
         buttonsPanel.add(stop);
-        buttonsPanel.add(replay);   
+        buttonsPanel.add(replay); 
         add(buttonsPanel,BorderLayout.NORTH);
 
         add(picture,BorderLayout.CENTER);
         picture.addMouseListener(this);
-        
-        
-        /**
-         *  //start of showing active link!!!
-         */
-       
-        picture.addMouseMotionListener(new MouseMotionListener() { 
-			@Override
-			public void mouseDragged(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void mouseMoved(MouseEvent e) {
-				int x=e.getX();
-			 	int y=e.getY();
-		    	String[] pathAndFrame = clickedOnTracedObject(x,y) ;
-		        if(pathAndFrame != null) {
-		        	 // Here we create a hand shaped cursor!
-		            Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
-		            picture.setCursor(cursor);
-		        }else {
-		        	Cursor cursor = new Cursor(Cursor.DEFAULT_CURSOR);
-		        	picture.setCursor(cursor);
-		        }
-		    }	
-		});
-        /**
-         * end of showing active link!!!
-         */
         setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
         //Set up a timer that calls this object's action handler.
@@ -257,7 +234,9 @@ public class VideoPlayer extends JPanel
     public void windowOpened(WindowEvent e) {}
     public void windowClosing(WindowEvent e) {}
     public void windowClosed(WindowEvent e) {}
-    public void windowActivated(WindowEvent e) {}
+    public void windowActivated(WindowEvent e) {
+
+    }
     public void windowDeactivated(WindowEvent e) {}
     
     public void mousePressed(MouseEvent e) {
@@ -268,9 +247,8 @@ public class VideoPlayer extends JPanel
         }
     
     public void mouseEntered(MouseEvent e) {
-    
+       
     }
-	 	
     
     public void mouseExited(MouseEvent e) {
        
@@ -291,19 +269,20 @@ public class VideoPlayer extends JPanel
          // TODO Auto-generated catch block
          e2.printStackTrace();
       } 
-      
+      int currFrame = frameNumber;
       String[] pathAndFrame = clickedOnTracedObject(x,y) ;
       if(pathAndFrame != null) {
          newFrameVal = Integer.valueOf(pathAndFrame[1]);
-         
+
          // Find new audioFrame position in microseconds
          audioSkip = ((newFrameVal * SAMPLES_PER_FRAME) / SAMPLES_PER_SECOND) * 1000000;
          
          if (newFrameVal > 0) {
             skip = true;
          }
-          createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1]));
-          
+         audioPath = pathAndFrame[0]+"/"+pathAndFrame[0]+".wav";
+          createAndShowGUI(pathAndFrame[0],Integer.valueOf(pathAndFrame[1])); ///////
+         
           try
          {
             stopAnimation();
@@ -313,12 +292,31 @@ public class VideoPlayer extends JPanel
             // TODO Auto-generated catch block
             e1.printStackTrace();
          }
+          
 
+      }
+      
+      else {
+         try
+         {
+            soundtrack = new PlayAudioClip(initialAudio);
+            System.out.println(audioSkip);
+            System.out.println(currFrame);
+            System.out.println(frameNumber);
+            
+            soundtrack.skipAudioClip((currFrame/30) * 1000000);
+         } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e1)
+         {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+         }
+         
       }
     }
 
 
     public String[] clickedOnTracedObject(int x, int y) {
+       
         for(int i =0; i<hyperlinks.size();i++) {
             int startFrame = Integer.valueOf(hyperlinks.get(i)[0]);
             int endFrame = Integer.valueOf(hyperlinks.get(i)[1]);
@@ -337,6 +335,7 @@ public class VideoPlayer extends JPanel
     
     // Start playing the audio file
     public void playSound() throws IOException, UnsupportedAudioFileException, PlayWaveException {
+       
        if (reset) {
           try
          {
@@ -364,7 +363,6 @@ public class VideoPlayer extends JPanel
             e.printStackTrace();
          } 
        }
-
        else {
           soundtrack.playAudioClip();
        }
@@ -391,6 +389,7 @@ public class VideoPlayer extends JPanel
        }
        
        audioThread.interrupt();
+       
     }
 
     public void stopAnimation() throws InterruptedException {
@@ -506,7 +505,7 @@ public class VideoPlayer extends JPanel
      */
     private static void createAndShowGUI(String arg, int num) {
         //Create and set up the window.
-        frame = new JFrame("VideoPlayer");
+        JFrame frame = new JFrame("VideoPlayer");
         videoPath = arg;
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -519,7 +518,6 @@ public class VideoPlayer extends JPanel
            if (skip) {
               soundtrack.skipAudioClip(audioSkip);
            }
-           
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e)
         {
            // TODO Auto-generated catch block
@@ -528,16 +526,27 @@ public class VideoPlayer extends JPanel
                 
         //Add content to the window.
         frame.add(animator, BorderLayout.CENTER);
+
         //Display the window.
         frame.pack();
         frame.setVisible(true);
     }
 
-
+  
     public static void main(String[] args) {
-       
+       initialAudio = args[0]+"/"+args[0]+".wav";
+       try
+      {
+         initialSoundtrack = new PlayAudioClip(args[0]+"/"+args[0]+".wav");
+      } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e)
+      {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
+      }
        
        createAndShowGUI(args[0], 1);
+       
+       
     }
 
     @Override
@@ -546,7 +555,7 @@ public class VideoPlayer extends JPanel
         
     }
 
-   public int getButtonState() {
+   public static int getButtonState() {
       return buttonState;
    }
    
@@ -562,19 +571,11 @@ public class VideoPlayer extends JPanel
             try
             {
                playSound();
-            } catch (IOException e)
+            } catch (IOException | UnsupportedAudioFileException | PlayWaveException e)
             {
                // TODO Auto-generated catch block
                e.printStackTrace();
-            } catch (UnsupportedAudioFileException e)
-            {
-               // TODO Auto-generated catch block
-               e.printStackTrace();
-            } catch (PlayWaveException e)
-            {
-               // TODO Auto-generated catch block
-               e.printStackTrace();
-            }
+            } 
 
       }
    }
@@ -622,4 +623,3 @@ public class VideoPlayer extends JPanel
     
     }
 }
-
