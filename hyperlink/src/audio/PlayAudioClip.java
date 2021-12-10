@@ -19,7 +19,7 @@ public class PlayAudioClip {
 
     private AudioInputStream audioInputStream = null;
 
-    private Clip audio;
+    public Clip audio;
     private Long currentFrame;
     private String filePath;
 
@@ -53,7 +53,7 @@ public class PlayAudioClip {
        
        audio.close();
        
-       resetAudioClipStream();
+       resetAudioClipStream(filePath);
        
        audio.setMicrosecondPosition(currentFrame);
        
@@ -75,7 +75,7 @@ public class PlayAudioClip {
        audio.stop();
        audio.close();
        
-       resetAudioClipStream();
+       resetAudioClipStream(filePath);
        
        currentFrame = 0L;
        
@@ -84,7 +84,7 @@ public class PlayAudioClip {
        this.playAudioClip();
     }
     
-    public void skipAudioClip(long frameNum) throws IOException, LineUnavailableException,
+    public void skipAudioClip(long frameNum, String filePath) throws IOException, LineUnavailableException,
     UnsupportedAudioFileException {
        
        if (frameNum < audio.getMicrosecondLength() && frameNum > 0) {
@@ -92,7 +92,7 @@ public class PlayAudioClip {
           audio.stop();
           audio.close();
           
-          resetAudioClipStream();
+          resetAudioClipStream(filePath);
           
           currentFrame = frameNum;
           
@@ -101,7 +101,7 @@ public class PlayAudioClip {
        }
     }
 
-    public void resetAudioClipStream() throws UnsupportedAudioFileException, IOException,
+    public void resetAudioClipStream(String filePath) throws UnsupportedAudioFileException, IOException,
     LineUnavailableException {
        audioInputStream = AudioSystem.getAudioInputStream(new File(filePath).getAbsoluteFile());
        audio.open(audioInputStream);
